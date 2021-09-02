@@ -10,97 +10,58 @@
 library(tidyverse)  
 
 #get species data
-mydata <- readRDS("C:/Users/db40fysa/Dropbox/Insect Biomass Trends/csvs/Toy data taxon comparisons 20210806.rds")
+#mydata <- readRDS("C:/Dropbox/Insect Biomass Trends/csvs/Toy data taxon comparisons 20210806.rds")
 
-#select columns we need
-mydata_select <- mydata %>%
-  select(c(Datasource_ID,Plot_ID,Year,Order,Number)) %>%
-  filter(!is.na(Order)) %>%
-  filter(Order!="")%>%
-  filter(!is.na(Number))
 
-#identify rarely sampled order
-rareOrder <- mydata_select %>%
-  group_by(Order) %>%
-  summarise(nuDatasets = length(unique(Datasource_ID))) %>%
-  filter(nuDatasets==1)
 
-#aggregate (across species) to order and remove rarely sampled orders
-mydata_aggregated <- mydata_select %>%
-                      filter(!Order %in% rareOrder$Order) %>%
-                      group_by(Datasource_ID,Plot_ID,Year,Order) %>%
-                      summarise(Number = sum(Number)) 
+#fit multivariate model
+#https://cran.r-project.org/web/packages/brms/vignettes/brms_multivariate.html
+library(brms)
 
-#check number of times each order co-occurs within the same dataset
-V <- crossprod(table(mydata_aggregated[,c("Datasource_ID","Order")]))
-diag(V) <- 0
-V_long <- V %>%
-          as_tibble() %>%
-          add_column(Base = row.names(V)) %>%
-          pivot_longer(!Base) %>%
-          rename(Order = name) %>%
-          mutate(log_value = log(value+1))
-
-#plot co-occurrence (need to shade out upper half since it is repeated)
-ggplot(V_long)+
-  geom_tile(aes(x=Base,y=Order,fill=log_value))+
-  scale_fill_viridis_c()+
-  theme(axis.text.x = element_text(angle=90))
-
+mydata_aggregated <- readRDS(file = "C:/Dropbox/Insect Biomass Trends/taxon correlations/testdata allorders.rds")
 
 #expand orders into different columns
 mydata_wide <- mydata_aggregated %>%
   pivot_wider(.,names_from="Order",
               values_from="Number")
 
-#choose 2 groups to compare
-ggplot(mydata_wide)+
-  geom_line(aes(x=Year, y = Diptera, group=Plot_ID),color="red")+
-  geom_line(aes(x=Year, y = Ephemeroptera, group=Plot_ID),color="blue")+
-  facet_wrap(~Datasource_ID,scales="free")
 
-ggplot(mydata_wide)+
-  geom_line(aes(x=Year, y = Trichoptera, group=Plot_ID),color="red")+
-  geom_line(aes(x=Year, y = Ephemeroptera, group=Plot_ID),color="blue")+
-  facet_wrap(~Datasource_ID,scales="free")
-
-
-#get simple correlations at the plot-level
-spCors <- mydata_wide %>%
-          group_by(Datasource_ID,Plot_ID) %>%
-          summarise(CorrelationTE = cor(Trichoptera,Ephemeroptera),
-                    CorrelationDE = cor(Diptera,Ephemeroptera),
-                    CorrelationDT = cor(Diptera,Trichoptera))
-
-par(mfrow=c(3,1))
-hist(spCors$CorrelationTE)
-hist(spCors$CorrelationDE)
-hist(spCors$CorrelationDT)
-
-#fit multivariate model
-#https://cran.r-project.org/web/packages/brms/vignettes/brms_multivariate.html
-library(brms)
 
 mydata_taxasubset <-mydata_wide %>%
-  filter(.,!is.na(Trichoptera) & !is.na(Ephemeroptera)) %>%
-  mutate(log_T = log10(Trichoptera+1), log_E = log10(Ephemeroptera+1))  
+  filter(.,!is.na(Hemiptera) & !is.na(Coleoptera) ) %>%
+  mutate(log_H = log10(Hemiptera+1), log_C = log10(Coleoptera+1) )  
 
-#correlated plot-level intercepts
-fit1 <- brm(
-  mvbind(log_T, log_E) ~ Year + (1|p|Plot_ID),
-  data = mydata_taxasubset, 
-  chains = 3)
-summary(fit1)
 
-#correlated plot-level intercepts and slopes
-fit1 <- brm(
-  mvbind(log_T, log_E) ~ Year + (1 + Year|p|Plot_ID),
-  data = mydata_taxasubset, 
-  chains = 3)
-summary(fit1)
 
 #or slightly simpler - uncorrelated intercepts and slopes
-fit1 <- brm(
-  mvbind(log_T, log_E) ~ Year + (1|p|Plot_ID) + (0 + Year|q|Plot_ID) ,
+
+Sys.time()
+fit3 <- brm(
+  mvbind(log_H, log_C) ~ Year + (1|p|Datasource_ID) +
+                                (1|r|Datasource_ID:Plot_ID) +
+                                (1|t|Datasource_ID:Plot_ID: Period) +
+                                (0 + Year|q|Datasource_ID) +
+                                (0 + Year|s|Datasource_ID:Plot_ID) ,
   data = mydata_taxasubset, 
-  chains = 3)
+  prior = c(set_prior("normal(0, 1)", class = "b",  resp = "logC"),
+            set_prior("normal(0, 10)", class = "Intercept",  resp = "logC"),
+            set_prior("normal(0, 1)", class = "b",  resp = "logH"),
+            set_prior("normal(0, 10)", class = "Intercept",  resp = "logH")),
+  warmup = 1000, 
+  iter   = 5000, 
+  chains = 3, 
+  #inits  = "random",
+  cores  = 3, 
+  #set_rescor = TRUE,
+  control = list(adapt_delta = 0.99)) # There were 1027 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup 
+
+print(paste("done:", Sys.time() )
+
+
+
+summary(fit3)
+
+
+
+
+saveRDS (fit3, file =  "taxa cor test model 1.rds")
