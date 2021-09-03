@@ -242,11 +242,11 @@ allDataOrdFW<-subset(allData, Plot_ID %in% plotorderClean$Plot_ID  & order_compa
 
 
 # now add zeroes #####
-allDataOrdTzero<- NULL
-for(i in 1:length(unique(allDataOrdT$Plot_ID))){
+allDataOrdFWzero<- NULL
+for(i in 1:length(unique(allDataOrdFW$Plot_ID))){
   
-  plt<- sort(unique(allDataOrdT$Plot_ID))[i]
-  myData<- allDataOrdT[allDataOrdT$Plot_ID == plt , ]
+  plt<- sort(unique(allDataOrdFW$Plot_ID))[i]
+  myData<- allDataOrdFW[allDataOrdFW$Plot_ID == plt , ]
   
   #expand grid to include 0 counts  # note that the 'date' variable is removed here. 
   # Date plays no role in the analysis, 
@@ -274,7 +274,7 @@ for(i in 1:length(unique(allDataOrdT$Plot_ID))){
                                                 replace=T) }
   
   
-  allDataOrdTzero<-rbind (allDataOrdTzero,myData)
+  allDataOrdFWzero<-rbind (allDataOrdFWzero,myData)
   print(plt)
 }
 
@@ -282,7 +282,7 @@ beep(2)
 
 
     
-metadata_per_order_per_plot<-  allDataOrdTzero %>% 
+metadata_per_order_per_plot<-  allDataOrdFWzero %>% 
   mutate(sample = paste(Year, Period, Date)) %>%
   group_by(  Plot_ID, Order) %>%
   summarise(
@@ -319,7 +319,7 @@ metadata_per_family_per_plot<-  allDataFamT %>%
     NumberOfSamples = length(unique(sample))
     )
 
-metadata_per_order<-  allDataOrd %>% 
+metadata_per_order<-  allDataOrdFWzero %>% 
   mutate(sample = paste(Year, Period, Date)) %>%
   group_by( Order) %>%
   summarise(
@@ -343,13 +343,13 @@ print(metadata_per_order, n = Inf)
 allDataOrdTzero<- anti_join(allDataOrdTzero, exclude) # Remove rare comparisons  looks reasonable. 
 
 # choose a dataset
-mydata<- allDataOrdFW
+mydata<- allDataOrdFWzero
 mydata<- allDataOrdTzero
 
 
 #select columns we need
 mydata_select <- mydata %>%
-  select(c(Datasource_ID,Location, Plot_ID, Year, Period, Order, Number)) %>%
+  select(c(Datasource_ID,Location, Plot_ID, Year, Period, Date,  Order, Number)) %>%
   filter(!is.na(Order)) %>%
   filter(Order!="")%>%
   filter(!is.na(Number))
@@ -363,9 +363,11 @@ rareOrder <- mydata_select %>%
 #aggregate (across species) to order and remove rarely sampled orders
 mydata_aggregated <- mydata_select %>%
   filter(!Order %in% rareOrder$Order) %>%
-  group_by(Datasource_ID,Plot_ID,Year,Period, Order) %>%
+  group_by(Datasource_ID,Plot_ID,Year,Period, Date, Order) %>%
   summarise(Number = sum(Number)) 
 mydata_aggregated$Period[is.na(mydata_aggregated$Period)] <- 1
+mydata_aggregated$Date[is.na(mydata_aggregated$Date)] <- 1
+
 
 saveRDS(mydata_aggregated, file = "./taxon correlations/testdata allorders.rds")
 
@@ -381,6 +383,7 @@ saveRDS(mydata_aggregated, file = "./taxon correlations/testdata allorders.rds")
 
 
 
+mydata_aggregated<- readRDS( file = "./taxon correlations/testdata allorders.rds")
 
 
 #check number of times each order co-occurs within the same dataset
@@ -435,13 +438,26 @@ cooc_long[cooc_long$Plots< cooc_long$Datasets, ]
 
 fair_comparisons_orderT<- subset(cooc_long, Datasets > 5 | Plots > 20) # 
 fair_comparisons_orderFW<- subset(cooc_long, Datasets > 5 | Plots > 20) # 
+fair_comparisons_orderFW$Taxon2 <- as.character(fair_comparisons_orderFW$Taxon2)
 
 # remove duplicates: 
-com1 <- paste(fair_comparisons_orderFW$Taxon1, fair_comparisons_orderFW$Taxon2)
-com2 <- paste(fair_comparisons_orderFW$Taxon2, fair_comparisons_orderFW$Taxon1)
-sum(com1 == com2 )
+fair_comparisons_orderT<-   fair_comparisons_orderT[!duplicated(data.frame(t(apply(fair_comparisons_orderT[1:2], 1, sort)))),]
+fair_comparisons_orderFW<-   fair_comparisons_orderFW[!duplicated(data.frame(t(apply(fair_comparisons_orderFW[1:2], 1, sort)))),]
+fair_comparisons_orderFW<- arrange(fair_comparisons_orderFW, Taxon2, Taxon1)
 
-fair_comparisons_orderT[  ]
+ggplot(fair_comparisons_orderFW) +
+  geom_tile(aes(x=Taxon1, y=Taxon2 , fill=Datasets))+
+  scale_fill_viridis_c()+
+  theme(axis.text.x = element_text(angle=90))
+
+ggplot(fair_comparisons_orderFW) +
+  geom_tile(aes(x=Taxon1, y=Taxon2 , fill=Plots))+
+  scale_fill_viridis_c()+
+  theme(axis.text.x = element_text(angle=90))
+
+
+
+
 
 #choose 2 groups to compare
 ggplot(mydata_wide)+
@@ -486,6 +502,104 @@ hist(spCors$CorrelationDT)
   ECNmothsStd<- read.csv(file = "ECN moths standardized 20210718.csv")
   ECNgbStd<- read.csv( file = "ECN ground beetles standardized 20210718.csv")
 # problematic because th eplots are not necesarily at the same location. also, there are sometimes multiple plots per site
+  
+  
+  
+  
+  
+  
+# loop for comparative models to run 
+  
+  
+  Taxon1 = "Ephemeroptera"
+  Taxon2 = "Megaloptera"
+  
+  
+
+comparisons<- fair_comparisons_orderFW
+
+for (i in 1: nrow(comparisons)){ 
+  
+  Taxon1<- comparisons[i, 2]
+  Taxon2<- comparisons[i, 1]
+  
+  mydata_wide <- mydata_aggregated %>%
+    pivot_wider(.,names_from="Order",
+                values_from="Number")
+  
+# do we have enough data in each plot to actually compare these taxa? 
+  # threshold: at least present in half of all years 
+  
+  mydata_taxasubset <-mydata_wide %>%
+    filter(.,!is.na(Taxon1) & !is.na(Taxon2) ) %>%
+    mutate(log_H = log10(Hemiptera+1), log_C = log10(Coleoptera+1) )  
+  
+  
+  
+mydataAggSubset<- subset(mydata_aggregated, Order == Taxon1& !is.na(Number)  | Order == Taxon2 & !is.na(Number)  )
+  pltQltyCheck<- dcast(mydataAggSubset, Plot_ID + Year ~ Order, value.var = "Number",  fill = -999 , sum)
+  pltQltyCheck<- subset(pltQltyCheck, Ephemeroptera != -999 & Megaloptera != -999)
+  
+
+  
+  metadata_per_order_per_plot<-  mydataAggSubset %>% 
+  mutate(sample = paste(Year, Period, Date)) %>%
+  group_by(  Plot_ID, Order) %>%
+  summarise(
+    Datasource_ID = unique(Datasource_ID), 
+    NumberOfIndPerOrder = sum(Number, na.rm = T ),
+    NumberOfOccPerOrder = sum(Number != 0, na.rm = T ),
+    NumberOfYears = length(unique(Year)),
+    NumberOfSamples = length(unique(sample))
+  ) %>% mutate(meanIndPerSample = NumberOfIndPerOrder / NumberOfSamples, 
+               meanOccurence    = NumberOfOccPerOrder / NumberOfSamples )
+
+  
+widemetadata<-   dcast(metadata_per_order_per_plot, Datasource_ID + Plot_ID ~ Order, value.var = "meanOccurence" ) 
+  
+GoodPlots<- subset(widemetadata, widemetadata[3]>0.5 & widemetadata[4]> 0.5)
+
+nGoodPlots <- nrow(GoodPlots)
+nGoodDatasets<- length(unique(GoodPlots$Datasource_ID))
+
+  
+if (nGoodPlots< 20 | nGoodDatasets < 5) next  #if less than 20 plots or less than 5 atasets, skip comparison 
+
+  # select the good data (each taxon is present in at least half of all years in each plot ):
+mydata_taxasubset<-  mydata_taxasubset[mydata_taxasubset$Plot_ID %in% GoodPlots$Plot_ID, ]
+  
+mydata_taxasubset$log_1 <- log10(mydata_taxasubset[3])
+mydata_taxasubset$log_2 <- log10(mydata_taxasubset[4])
+
+
+
+# run model 
+fit <- brm(
+  mvbind(log_1, log_2) ~ Year + 
+    (1|p|Datasource_ID) +
+    (1|r|Datasource_ID:Plot_ID) +
+    (1|t|Datasource_ID:Plot_ID: Period) +
+    (0 + Year|q|Datasource_ID) +
+    (0 + Year|s|Datasource_ID:Plot_ID) ,
+  data = mydata_taxasubset, 
+  prior = c(set_prior("normal(0, 1)", class = "b",  resp = "logC"),
+            set_prior("normal(0, 10)", class = "Intercept",  resp = "logC"),
+            set_prior("normal(0, 1)", class = "b",  resp = "logH"),
+            set_prior("normal(0, 10)", class = "Intercept",  resp = "logH")),
+  warmup = 1500, 
+  iter   = 10000, 
+  chains = 4, 
+  #inits  = "random",
+  cores  = 4, 
+  #set_rescor = TRUE,
+  control = list(adapt_delta = 0.99)) # There were 1027 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup 
+
+print("done:")
+Sys.time() 
+
+  
+  }
+  
   
   
   
