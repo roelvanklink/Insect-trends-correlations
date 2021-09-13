@@ -65,22 +65,80 @@ taxa<- taxa[, 1:14]
   taxa$Level <- factor(taxa$Level, ordered = TRUE, 
                       levels = c("Phylum",  "Class", "Subclass", "Order","Suborder",  "Family",
                                  "Subfamily","Genus" ,"Species" ))
-  taxa$Rank<-as.numeric(taxa$Level)        
+  taxa$Rank<-as.numeric(taxa$Level) 
+
+  
+  
+# assign common group names     
+taxa$commonGroup<- NA
+taxa$commonGroup[taxa$Family== "Carabidae"] <-  "Ground beetles"
+Weevils <- c("Brentidae", "Apionidae", "Anthribidae", "Attelabidae", "Curculionidae" )
+taxa$commonGroup[taxa$Family %in% Weevils] <- "Weevils"
+taxa$commonGroup[taxa$Family== "Chrysomelidae"] <-  "Leaf beetles"
+taxa$commonGroup[taxa$Family== "Staphylinidae"] <-   "Rove beetles"
+taxa$commonGroup[taxa$Family== "Syrphidae"] <- "Hoverflies"
+taxa$commonGroup[taxa$Order== "Neuroptera"] <- "Lacewings"
+
+                                          
+bees<- c("Andrenidae", "Apidae", "Colletidae", "Halictidae", "Megachilidae", "Melittidae", "Stenotritidae" )
+taxa$commonGroup[taxa$Family %in% bees] <- "Bees"
+
+butterflies <- c("Nymphalidae", "Hesperiidae",  "Lycaenidae",  "Pieridae", "Papilionidae", "Riodinidae")
+taxa$commonGroup[taxa$Family %in% butterflies] <- "Butterflies"
+
+taxa$commonGroup[taxa$Family== "Coccinellidae"] <-  "Lady beetles"
+taxa$commonGroup[taxa$Subclass== "Collembola"] <- "Springtails"
+taxa$commonGroup[taxa$Order== "Araneae"] <- "Spiders"
+taxa$commonGroup[taxa$Order== "Orthoptera"] <- "Orthopterans"
+
+hymFam<- sort(unique(taxa$Family[taxa$Order == "Hymenoptera"]))
+parasitoids <- hymFam[! hymFam %in% c(bees, "Formicidae",  "Vespidae", "Agaonidae", "Argidae", "Cynipidae", "Cynipoidea", "Figitidae" , 
+                                      "Xiphydriidae" , "Tenthredinidae" ,"")] # this excludes all other families , including bees 
+taxa$commonGroup[taxa$Family %in% parasitoids] <- "Parasitoid wasps"
+
+lepFam<- sort(unique(taxa$Family[taxa$Order == "Lepidoptera"]))
+moths <-  lepFam[!lepFam %in% c(butterflies, "Zygaenidae", "")]
+taxa$commonGroup[taxa$Family %in% moths] <- "Moths"
+
+
+colFam<- sort(unique(taxa$Family[taxa$Order == "Coleoptera"]))
+
+
+taxa$commonGroup[taxa$Suborder== "Heteroptera"] <- "True bugs"
+taxa$commonGroup[taxa$Suborder== "Auchenorrhyncha"] <- "Plant- and leafhoppers" 
+Dungbeetles <- c("Geotrupidae", "Aphodiinae" , "Scarabaeinae")
+taxa$commonGroup[taxa$Family %in% Dungbeetles | taxa$Subfamily %in% Dungbeetles] <- "Dungbeetles"
+
+taxa$commonGroup[taxa$Family== "Formicidae"] <-  "Ants"
+
+taxa$commonGroup[taxa$Order== "Odonata"] <- "Dragonflies"
+taxa$commonGroup[taxa$Order== "Trichoptera"] <- "Caddisflies"
+taxa$commonGroup[taxa$Order== "Ephemeroptera"] <- "Mayflies"
+taxa$commonGroup[taxa$Order== "Plecoptera"] <- "Stoneflies"
+taxa$commonGroup[taxa$Family== "Chironomidae"] <- "Midges"
+waterbeetles<- c(  "Dytiscidae",   "Gyrinidae" , "Haliplidae" , "Noteridae",   "Amphizoidae",
+                   "Hygrobiidae", "Meruidae", "Hydroscaphidae" , "Hydrophilidae", "Lutrochidae", 
+  "Dryopidae",  "Elmidae","Eulichadidae", "Heteroceridae", "Limnichidae", "Psephenidae", 
+  "Ptilodactylidae", "Torridincolidae", "Sphaeriusidae")
+taxa$commonGroup[taxa$Family %in% waterbeetles] <- "Water beetles"
+taxa$commonGroup[taxa$Family== " "] <- "Water beetles"
+taxa$commonGroup[taxa$Family== "Culicidae"] <- "Mosquitoes"
+taxa$commonGroup[taxa$Family== "Simuliidae"] <- "Simuliidae"
+waterbugs <- c("Belostomatidae",  "Nepidae", "Corixidae", "Naucoridae", "Ochteridae", "Gelastocoridae", "Aphelocheiridae", "Notonectidae", "Pleidae", "Helotrephidae")
+taxa$commonGroup[taxa$Family %in%  waterbugs] <- "Water bugs"
+
+waterbugs <- c("Belostomatidae",  "Nepidae", "Corixidae", "Naucoridae", "Ochteridae", "Gelastocoridae", "Aphelocheiridae", "Notonectidae", "Pleidae", "Helotrephidae")
+taxa$commonGroup[taxa$Family %in%  waterbugs] <- "Water bugs"
+taxa$commonGroup[taxa$Subclass== "Acari"] <- "Mites"
+
+#check waht's not assigned
+unique(subset(taxa[, c("Class" , "Subclass", "Order", "Suborder", "Family",  "commonGroup")], is.na(commonGroup) & Class == "Arachnida"))  
+  # nothing big missing 
+  
+  
+  
+  
 write.csv(taxa, file = "C:\\Dropbox\\Insect Biomass Trends/csvs/taxa5.2.csv", row.names = F )  
-  
-  # some changes to groupings
-  studies$Continent[studies$Continent == "South America"]  <- "Latin America"
-  studies$Continent[studies$Continent == "Central America"]  <- "Latin America"
-  studies$Region[studies$Region == "Russia Volga"]  <- "Russia Central & Volga"
-  studies$Region[studies$Region == "Russia Central"]  <- "Russia Central & Volga"
-  studies$Region[studies$Region == "Russia Ural"]  <- "Russia Ural & Siberia"
-  studies$Region[studies$Region== "Russia Siberia"]  <- "Russia Ural & Siberia"
-  studies$Region[studies$Region== "Russia Far East"]  <- "Asia East"
-  
-  # manual groupings of some datasets
-  studies$Region[(studies$Region == "Germany" & studies$Realm == "Freshwater" ) ] <- "Europe rest West"
-  studies$Region[(studies$Region == "United Kingdom" & studies$Realm == "Freshwater" ) ] <- "Europe rest West"
-  studies$Region[(studies$Region == "Russia Northwest" & studies$Realm == "Terrestrial" ) ] <- "Europe rest North"
   
   
   
@@ -99,7 +157,7 @@ write.csv(taxa, file = "C:\\Dropbox\\Insect Biomass Trends/csvs/taxa5.2.csv", ro
                    "Process_of_change", "notes_change", "invasives", "Coord_system", "Original_Latitude", "Original_Longitude", "Latitude",
                    "Longitude", "Elevation", "Source_geogr_data")]
   names(taxa) # no redundancy
-  taxa<-taxa[, c("ID","Phylum", "Class", "Subclass", "Suborder",  "Order", "Family","Subfamily", "Genus",     "Species",   "Taxon", "Level", "Rank", "Note")]
+  taxa<-taxa[, c("ID","Phylum", "Class", "Subclass", "Suborder",  "Order", "Family","Subfamily", "Genus",     "Species",   "Taxon", "Level", "Rank", "Note", "commonGroup")]
   
 # clean some datasets from the raw database: 
     # remove extra months from harvard forest
@@ -248,19 +306,26 @@ metadata_per_plot<-  allData %>%
     End = max(Year, na.rm = T),
     Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1, 
     NumberOfOrders = length(unique(Order)), 
-    NumberOfFamilies = length(unique(Family))
+    NumberOfFamilies = length(unique(Family)), 
+    NumberOfCommonTaxa = length(unique(commonGroup))
     )
 
 plotfamilyClean<- (subset(metadata_per_plot,   Duration >9 & NumberOfFamilies>1 )) ; dim(plotfamilyClean)
 plotorderClean<-  (subset(metadata_per_plot,   Duration >9 & NumberOfOrders>1 )) ; dim(plotorderClean)
-    # revove plots with < 10 years 
+plotCommonClean<-  (subset(metadata_per_plot,   Duration >9 & NumberOfCommonTaxa>1 )) ; dim(plotCommonClean)
+# revove plots with < 10 years 
     # remove PLOTS without multiple taxa / too few individuals of taxa
 
-allDataFam <-subset(allData, Plot_ID %in% plotfamilyClean$Plot_ID & family_comparison == "y" );dim(allDataFam)  #525063
-allDataOrd <-subset(allData, Plot_ID %in% plotorderClean$Plot_ID  & order_comparison == "y"  );dim(allDataOrd)  #441320
-   
+allDataFam <-subset(allData, Plot_ID %in% plotfamilyClean$Plot_ID & family_comparison == "y" );dim(allDataFam)  #536617
+allDataOrd <-subset(allData, Plot_ID %in% plotorderClean$Plot_ID  & order_comparison == "y"  );dim(allDataOrd)  #452874     
+allDataCommon <-subset(allData, Plot_ID %in% plotCommonClean$Plot_ID  & order_comparison == "y" | 
+                                Plot_ID %in% plotCommonClean$Plot_ID  & family_comparison == "y" );dim(allDataCommon)  # 460718
 
-# remove rare taxa 
+
+
+
+
+# ORDER level comparisons #####
 
 #select columns we need
 allDataOrd_select <- allDataOrd %>%
@@ -297,20 +362,78 @@ dim(allDataOrd_aggregated) #76328
 
 
 
-# check which comparisons make sense in each plot regarding data availability per plot 
 
-# TO DO LATER 
-metadata_per_family_per_plot<-  allDataFamzero %>% 
-  mutate(sample = paste(Year, Period, Date)) %>%
-  group_by(  Plot_ID, Family) %>%
+# now add zeroes (run time 3 minutes or so)  #####
+
+addZeroes<- function (dat )  {
+  datZero<- NULL
+  
+  for(i in 1:length(unique(dat$Plot_ID))){
+    
+    plt<- sort(unique(dat$Plot_ID))[i]
+    myData<- dat[dat$Plot_ID == plt , ]
+    
+    myData$Period[is.na(myData$Period)] <- 1
+    myData$Period[myData$Period == ""] <- 1
+    #myData$Date  [is.na(myData$Date)] <- myData$Year
+    #myData$Date  [myData$Date == ""] <- myData$Year
+    if (length(unique (myData$Date)) == 1) {myData$Date<- paste0(myData$Year, "_", myData$Period)}
+    
+    #expand grid to include 0 counts  # note that the 'date' variable is removed here. 
+    # Date plays no role in the analysis, 
+    # and in case multiple weeks were sampled within a month, these are thus seen as "replicates" within a month. 
+    # month is accounted for as random effect
+    constantData <- unique(myData[,c("Datasource_ID", "Year", "Period", "Date",  "Plot_ID")])#these are defo unique
+    allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
+                           Date  = unique(myData$Date),
+                           Order = unique(myData$Order))
+    
+    allgrid <- merge(allgrid,constantData, all.x=T)
+    
+    #add observed data
+    myData1 <- merge(allgrid, myData[, c( "Order",  "Plot_ID", "Date",   "Number")],  #"classes",
+                     by=c( "Order",  "Plot_ID", "Date" ),all=T)
+    if (nrow(myData1) > nrow(allgrid)){ print("WARNING: something's going wrong here")}
+    # add descriptors
+    myData <- merge(myData1, unique(myData[ ,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Flag_taxonomy" )]),
+                    by="Plot_ID",all=T)
+    if (nrow(myData) > nrow(myData1)){ print("WARNING: something's going wrong here")}
+    
+    #print(plt)
+    
+    myData$Number[is.na(myData$Number)] <- 0 
+    
+    datZero<-rbind (datZero,myData)
+    print(plt)
+    
+  }
+  beep(2)
+  return(datZero)  }
+
+
+allDataOrdzero <- addZeroes(allDataOrd_aggregated)
+
+#does every sample and order have 1 observation?
+dcast(allDataOrdzero, Plot_ID +  Date +Datasource_ID + Year+Period  +Location+  Datasource_name + Realm ~ Order , value.var = "Number")
+nrow(unique(allDataOrdzero[, 1:6])) # should have same nrow as aallDataOrdzero
+
+
+# check for outliers (indicative of taxon not counted )
+
+outlierCheck<-  allDataOrdzero %>% 
+  group_by(  Plot_ID, Order) %>%
   summarise(
+    Realm = unique(Realm), 
     Datasource_ID = unique(Datasource_ID), 
-    Datasource_name = unique(Datasource_name.x), 
-    NumberOfIndPerFamily = sum(Number, na.rm = T ),
-    NumberOfOccPerFamily = sum(Number != 0, na.rm = T ),
-    NumberOfYears = length(unique(Year)),
-    NumberOfSamples = length(unique(sample))
-  )
+    Datasource_name = unique(Datasource_name), 
+    mean = mean(log10(Number+1)), 
+    sd = sd(log10(Number+1)), 
+    sd2 = sd(log10(Number+1) *2), 
+    zeroes = sum(Number == 0),
+    lower2sd  = (mean(log10(Number+1)) - sd(log10(Number+1))*2) 
+  ) 
+print(subset(outlierCheck, zeroes !=0 & lower2sd >0), n = Inf )
+# excessive outliers (>1) in Alaska  are fixed. Only a few leftover in Sweden and new zealand 
 
 
 
@@ -318,7 +441,7 @@ metadata_per_family_per_plot<-  allDataFamzero %>%
 
 
     
-metadata_per_order_per_plot<-  allDataOrd_aggregated %>% 
+metadata_per_order_per_plot<-  allDataOrdzero %>% 
   mutate(sample = paste(Year, Period, Date)) %>%
   group_by(  Plot_ID, Order) %>%
   summarise(
@@ -336,16 +459,16 @@ metadata_per_order_per_plot<-  allDataOrd_aggregated %>%
 
 # list of observations to be excluded, bacause they were observed in less than half of the samples 
 exclude<- subset(metadata_per_order_per_plot,  floor(NumberOfIndPerOrder) ==  NumberOfIndPerOrder &    meanOccPerSample <0.5)
-dim(exclude) # 295
-print(exclude, n = Inf)
+dim(exclude) # 1774
+print(exclude, n = 100)
 
 # remove these
 # remove data deficient orders 
-dim(allDataOrd_aggregated)
-index1<- paste(allDataOrd_aggregated$Plot_ID, allDataOrd_aggregated$Order)
+dim(allDataOrdzero)
+index1<- paste(allDataOrdzero$Plot_ID, allDataOrdzero$Order)
 index2<- paste(exclude$Plot_ID, exclude$Order)
 length(index1[! index1 %in% index2]) # to check what the nrow of the df should be 
-allDataOrd_aggregated<- anti_join(allDataOrd_aggregated, exclude[, 1:3]); dim(allDataOrd_aggregated) # Remove rare comparisons.   this is correct 
+allDataOrdzero<- anti_join(allDataOrdzero, exclude[, 1:3]); dim(allDataOrdzero) # Remove rare comparisons. 92136  this is correct 
 
 
 # check other rare species
@@ -358,7 +481,7 @@ print(check, n = Inf)
 
 # which comparisons are left? ####
 # now we want to know in how many datasets different orders co-occur , and remove the comparisons that are too flimsy (<5 datasets or <20 plots)
-countDatasets<- dcast(allDataOrd_aggregated, Realm + Datasource_ID + Order  ~ "Count", value.var = "Number" , sum)
+countDatasets<- dcast(allDataOrdzero, Realm + Datasource_ID + Order  ~ "Count", value.var = "Number" , sum)
 coocDfw<- crossprod(table(subset(countDatasets, Realm == "Freshwater") [,c("Datasource_ID","Order")]))
 coocDt<-  crossprod(table(subset(countDatasets, Realm == "Terrestrial")[,c("Datasource_ID","Order")]))
 diag(coocDfw) <- 0
@@ -376,7 +499,7 @@ coocDt_long$Realm <- "Terrestrial"
 coocD_long<- rbind(coocDt_long, coocDfw_long); dim(coocD_long)
  length (unique(coocD_long$Taxon1))
 
-countPlots<- dcast(allDataOrd_aggregated, Realm + Plot_ID + Order  ~ "Count", value.var = "Number" , sum)
+countPlots<- dcast(allDataOrdzero, Realm + Plot_ID + Order  ~ "Count", value.var = "Number" , sum)
 dim(countPlots)
 countPlots$Count <- 1 # convert to only existence of the data
 coocPfw<- crossprod(table(subset(countPlots, Realm == "Freshwater")  [,c("Plot_ID","Order")]))
@@ -408,6 +531,7 @@ cooc_long$Taxon2 <- as.character(cooc_long$Taxon2)
 dim( cooc_long)
 
 fair_comparisons_order<- subset(cooc_long, Datasets > 5 | Plots > 20) # 
+dim(fair_comparisons_order)
 
 ggplot(subset(cooc_long, Datasets > 5 | Plots > 20) ) +
   geom_tile(aes(x=Taxon1, y=Taxon2 , fill=Datasets))+
@@ -422,9 +546,9 @@ ggplot(subset(cooc_long, Datasets > 5 ) ) +
   theme(axis.text.x = element_text(angle=90)) # this looks more reasonable 
 
 
-ok_comparisons_order<- subset(cooc_long, Datasets > 5 | Plots > 20); dim(ok_comparisons_order) # 226
-fair_comparisons_order<- subset(cooc_long, Datasets < 5 & Plots > 20); dim(fair_comparisons_order) # 155
-good_comparisons_order<- subset(cooc_long, Datasets >= 5); dim(good_comparisons_order) #71 
+ok_comparisons_order<- subset(cooc_long, Datasets > 5 | Plots > 20); dim(ok_comparisons_order) # 118
+fair_comparisons_order<- subset(cooc_long, Datasets < 5 & Plots > 20); dim(fair_comparisons_order) # 42
+good_comparisons_order<- subset(cooc_long, Datasets >= 5); dim(good_comparisons_order) #81
 
 # make job array file 
 good_comparisons_order$modelName<- paste0(substr(good_comparisons_order$Taxon1,1,4), "_",
@@ -432,75 +556,6 @@ good_comparisons_order$modelName<- paste0(substr(good_comparisons_order$Taxon1,1
                                           substr(good_comparisons_order$Realm, 1,1))
 
 write.csv(good_comparisons_order, "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs.csv")
-
-
-
-
-
-
-
-
-
-# now add zeroes (run time 3 minutes or so)  #####
-
-addZeroes<- function (dat )  {
-  datZero<- NULL
-  
-  for(i in 1:length(unique(dat$Plot_ID))){
-    
-    plt<- sort(unique(dat$Plot_ID))[i]
-    myData<- dat[dat$Plot_ID == plt , ]
-    
-    myData$Period[is.na(myData$Period)] <- 1
-    #expand grid to include 0 counts  # note that the 'date' variable is removed here. 
-    # Date plays no role in the analysis, 
-    # and in case multiple weeks were sampled within a month, these are thus seen as "replicates" within a month. 
-    # month is accounted for as random effect
-    constantData <- unique(myData[,c("Datasource_ID", "Year", "Period", "Date",  "Plot_ID")])#these are defo unique
-    allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
-                           Date  = unique(myData$Date),
-                           Order = unique(myData$Order))
-    
-    allgrid <- merge(allgrid,constantData, all.x=T)
-    
-    #add observed data
-    myData1 <- merge(allgrid, myData[, c( "Order",  "Plot_ID", "Date",   "Number")],  #"classes",
-                     by=c( "Order",  "Plot_ID", "Date" ),all=T)
-    # add descriptors
-    myData <- merge(myData1, unique(myData[ ,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Flag_taxonomy" )]),
-                    by="Plot_ID",all=T)
-    #print(plt)
-    
-    myData$Number[is.na(myData$Number)] <- 0 
-    
-    datZero<-rbind (datZero,myData)
-    print(plt)
-    
-  }
-  beep(2)
-  return(datZero)  }
-
-
-allDataOrdzero <- addZeroes(allDataOrd_aggregated)
-
-
-# check for outliers (indicative of taxon not counted )
-
-outlierCheck<-  allDataOrdzero %>% 
-  group_by(  Plot_ID, Order) %>%
-  summarise(
-    Realm = unique(Realm), 
-    Datasource_ID = unique(Datasource_ID), 
-    Datasource_name = unique(Datasource_name), 
-    mean = mean(log10(Number+1)), 
-    sd = sd(log10(Number+1)), 
-    sd2 = sd(log10(Number+1) *2), 
-    zeroes = sum(Number == 0),
-    lower2sd  = (mean(log10(Number+1)) - sd(log10(Number+1))*2) 
-      ) 
-print(subset(outlierCheck, zeroes !=0 & lower2sd >0), n = Inf )
-# excessive outliers (>1) in Alaska  are fixed. Only a few leftover in Sweden and new zealand 
-
 
 
 
@@ -522,65 +577,269 @@ saveRDS(allDataOrdzero, file = "./taxon correlations/Fulldata allorders.rds")
 
 
 
+# group level comparisons #####
+# Same procedure for commonly assessed taxa: 
+
+unique(allDataCommon$commonGroup) 
+
+
+
+#select columns we need, and remove taxa that are not in these groups 
+allDataCommon_select <- allDataCommon %>%
+  select(c(Datasource_ID, Datasource_name, Location, Realm, Plot_ID, Year, Period, Date,  commonGroup, Number,  Flag_taxonomy)) %>%
+  filter(!is.na(commonGroup)) %>%
+  filter(commonGroup != "")%>%
+  filter(!is.na(Number))
+
+  
+
+
+#identify rarely sampled orders (les sthan 5 datasets and less than 20 plots go out )
+rareGroup <- allDataCommon_select %>%
+  group_by(commonGroup) %>%
+  summarise(nuDatasets = length(unique(Datasource_ID)), 
+            nuPlots = length(unique(Plot_ID))) %>%
+  filter(nuDatasets<5 & nuPlots <20)
+rareGroup # none, duh
+
+#aggregate (across species) to order and remove rarely sampled orders #####
+allDataCommon_aggregated <- allDataCommon_select %>%
+  filter(!commonGroup %in% rareGroup$commonGroup) %>%
+  group_by(Datasource_ID, Datasource_name, Location, Plot_ID, Realm, Year, Period, Date, commonGroup, Flag_taxonomy) %>%
+  summarise(Number = sum(Number)) 
+allDataCommon_aggregated$Period[is.na(allDataCommon_aggregated$Period)] <- 1
+allDataCommon_aggregated$Date[is.na(allDataCommon_aggregated$Date)] <- 1
+dim(allDataCommon_aggregated) #94931
+
+
+
+
+# now add zeroes (run time 3 minutes or so)  #####
+
+addZeroes<- function (dat )  {
+  datZero<- NULL
+  
+  for(i in 1:length(unique(dat$Plot_ID))){
+    
+    plt<- sort(unique(dat$Plot_ID))[i]
+    myData<- dat[dat$Plot_ID == plt , ]
+    
+    myData$Period[is.na(myData$Period)] <- 1
+    myData$Period[myData$Period == ""] <- 1
+    #myData$Date  [is.na(myData$Date)] <- myData$Year
+    #myData$Date  [myData$Date == ""] <- myData$Year
+    if (length(unique (myData$Date)) == 1) {myData$Date<- paste0(myData$Year, "_", myData$Period)}
+    
+    #expand grid to include 0 counts  # note that the 'date' variable is removed here. 
+    # Date plays no role in the analysis, 
+    # and in case multiple weeks were sampled within a month, these are thus seen as "replicates" within a month. 
+    # month is accounted for as random effect
+    constantData <- unique(myData[,c("Datasource_ID", "Year", "Period", "Date",  "Plot_ID")])#these are defo unique
+    allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
+                           Date  = unique(myData$Date),
+                           commonGroup = unique(myData$commonGroup))
+    
+    allgrid <- merge(allgrid,constantData, all.x=T)
+    
+    #add observed data
+    myData1 <- merge(allgrid, myData[, c( "commonGroup",  "Plot_ID", "Date",   "Number")],  #"classes",
+                     by=c( "commonGroup",  "Plot_ID", "Date" ),all=T)
+    if (nrow(myData1) > nrow(allgrid)){ print("WARNING: something's going wrong here")}
+    # add descriptors
+    myData <- merge(myData1, unique(myData[ ,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Flag_taxonomy" )]),
+                    by="Plot_ID",all=T)
+    if (nrow(myData) > nrow(myData1)){ print("WARNING: something's going wrong here")}
+    
+    #print(plt)
+    
+    myData$Number[is.na(myData$Number)] <- 0 
+    
+    datZero<-rbind (datZero,myData)
+    print(plt)
+    
+  }
+  beep(2)
+  return(datZero)  }
+
+
+allDataCommonzero <- addZeroes(allDataCommon_aggregated)
+
+#does every sample and order have 1 observation?
+dcast(allDataCommonzero, Plot_ID +  Date +Datasource_ID + Year+Period  +Location+  Datasource_name + Realm ~ commonGroup , value.var = "Number")
+nrow(unique(allDataCommonzero[, 1:6])) # should have same nrow as aallDataOrdzero
+
+
+
+# check which comparisons make sense in each plot regarding data availability per plot 
+
+metadata_per_group_per_plot<-  allDataCommonzero %>% 
+  mutate(sample = paste(Year, Period, Date)) %>%
+  group_by(  Plot_ID, commonGroup) %>%
+  summarise(
+    Realm = unique(Realm), 
+    Datasource_ID = unique(Datasource_ID), 
+    Datasource_name = unique(Datasource_name), 
+    NumberOfIndPerGroup = sum(Number, na.rm = T ),
+    NumberOfOccPerGroup = sum(Number != 0, na.rm = T ),
+    NumberOfYears = length(unique(Year)),
+    NumberOfSamples = length(unique(sample))
+  ) %>% mutate(meanIndPerSample = NumberOfIndPerGroup / NumberOfSamples, 
+               meanOccPerSample = NumberOfOccPerGroup / NumberOfSamples)
+
+
+
+# list of observations to be excluded, bacause they were observed in less than half of the samples 
+exclude<- subset(metadata_per_group_per_plot,  floor(NumberOfIndPerGroup) ==  NumberOfIndPerGroup &    meanOccPerSample <0.5)
+dim(exclude) # 2295
+print(exclude, n = 100)
+
+# remove these
+# remove data deficient orders 
+dim(allDataCommonzero)
+index1<- paste(allDataCommonzero$Plot_ID, allDataCommonzero$commonGroup)
+index2<- paste(exclude$Plot_ID, exclude$commonGroup)
+length(index1[! index1 %in% index2]) # to check what the nrow of the df should be 
+allDataCommonzero<- anti_join(allDataCommonzero, exclude[, 1:3]); dim(allDataCommonzero) # Remove rare comparisons.   this is correct 
+
+
+# check other rare species
+check<- subset(metadata_per_order_per_plot,  floor(NumberOfIndPerOrder) ==  NumberOfIndPerOrder &    meanOccPerSample >0.5 & meanOccPerSample <1)
+print(check, n = 100)
+# this seems fine to me: these are taxa that were present in most years and can be analysed 
+
+
+
+
+
+
+
+
+
+# which comparisons are left? ####
+# now we want to know in how many datasets different orders co-occur , and remove the comparisons that are too flimsy (<5 datasets or <20 plots)
+countDatasets<- dcast(allDataCommonzero, Realm + Datasource_ID + commonGroup  ~ "Count", value.var = "Number" , sum)
+coocDfw<- crossprod(table(subset(countDatasets, Realm == "Freshwater") [,c("Datasource_ID","commonGroup")]))
+coocDt<-  crossprod(table(subset(countDatasets, Realm == "Terrestrial")[,c("Datasource_ID","commonGroup")]))
+diag(coocDfw) <- 0
+diag(coocDt) <- 0
+coocDfw_long <- reshape2::melt(as.data.frame(coocDfw), 
+                               value.name = "Datasets",
+                               variable.name = "Taxon2")
+coocDfw_long$Taxon1 <- rownames(coocDfw) # add rownames 
+coocDfw_long$Realm <- "Freshwater"
+coocDt_long <- reshape2::melt(as.data.frame(coocDt), 
+                              value.name = "Datasets",
+                              variable.name = "Taxon2")
+coocDt_long$Taxon1 <- rownames(coocDt)
+coocDt_long$Realm <- "Terrestrial"
+coocD_long<- rbind(coocDt_long, coocDfw_long); dim(coocD_long)
+length (unique(coocD_long$Taxon1))
+
+countPlots<- dcast(allDataCommonzero, Realm + Plot_ID + commonGroup  ~ "Count", value.var = "Number" , sum)
+dim(countPlots)
+countPlots$Count <- 1 # convert to only existence of the data
+coocPfw<- crossprod(table(subset(countPlots, Realm == "Freshwater")  [,c("Plot_ID","commonGroup")]))
+coocPt <- crossprod(table(subset(countPlots, Realm == "Terrestrial") [,c("Plot_ID","commonGroup")]))
+diag(coocPfw) <- 0
+diag(coocPt) <- 0
+coocPfw_long <- reshape2::melt(as.data.frame(coocPfw), 
+                               value.name = "Plots",
+                               variable.name = "Taxon2")
+coocPfw_long$Taxon1 <- rownames(coocPfw) # add rownames 
+coocPfw_long$Realm <- "Freshwater"
+coocPt_long <- reshape2::melt(as.data.frame(coocPt), 
+                              value.name = "Plots",
+                              variable.name = "Taxon2")
+coocPt_long$Taxon1 <- rownames(coocPt)
+coocPt_long$Realm <- "Terrestrial"
+coocP_long<- rbind(coocPt_long, coocPfw_long); dim(coocP_long)
+
+
+cooc_long<- merge(coocP_long, coocD_long)
+
+# checks
+sum(cooc_long$Plots< cooc_long$Datasets)
+cooc_long[cooc_long$Plots< cooc_long$Datasets, ] # these will all be excluded because of too little data
+
+# remove duplicates: 
+cooc_long<-   cooc_long[!duplicated(data.frame(t(apply(cooc_long[1:3], 1, sort)))),]
+cooc_long$Taxon2 <- as.character(cooc_long$Taxon2)
+dim( cooc_long)
+
+fair_comparisons_group<- subset(cooc_long, Datasets > 5 | Plots > 20) # 
+
+ggplot(subset(cooc_long, Datasets > 5 | Plots > 20) ) +
+  geom_tile(aes(x=Taxon1, y=Taxon2 , fill=Datasets))+
+  scale_fill_viridis_c()+
+  facet_wrap(.~Realm, scales = "free")+
+  theme(axis.text.x = element_text(angle=90))
+
+ggplot(subset(cooc_long, Datasets > 5 ) ) +
+  geom_tile(aes(x=Taxon1, y=Taxon2 , fill=Datasets))+
+  scale_fill_viridis_c()+
+  facet_wrap(.~Realm, scales = "free")+
+  theme(axis.text.x = element_text(angle=90)) # this looks more reasonable 
+
+
+ok_comparisons_group<- subset(cooc_long, Datasets > 5 | Plots > 20); dim(ok_comparisons_group) # 160
+fair_comparisons_group<- subset(cooc_long, Datasets < 5 & Plots > 20); dim(fair_comparisons_group) # 87
+good_comparisons_group<- subset(cooc_long, Datasets >= 5); dim(good_comparisons_group) #77 
+
+# make job array file 
+good_comparisons_group$modelName<- paste0(substr(good_comparisons_group$Taxon1,1,4), "_",
+                                          substr(good_comparisons_group$Taxon2, 1,4), "_", 
+                                          substr(good_comparisons_group$Realm, 1,1))
+
+write.csv(good_comparisons_group, "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_groups.csv")
+
+
+
+
+
+
+
+# check for outliers (indicative of taxon not counted )
+
+outlierCheck<-  allDataCommonzero %>% 
+  group_by(  Plot_ID, commonGroup) %>%
+  summarise(
+    Realm = unique(Realm), 
+    Datasource_ID = unique(Datasource_ID), 
+    Datasource_name = unique(Datasource_name), 
+    mean = mean(log10(Number+1)), 
+    sd = sd(log10(Number+1)), 
+    sd2 = sd(log10(Number+1) *2), 
+    zeroes = sum(Number == 0),
+    lower2sd  = (mean(log10(Number+1)) - sd(log10(Number+1))*2) 
+  ) 
+print(subset(outlierCheck, zeroes !=0 & lower2sd >0), n = Inf )
+# excessive outliers (>1) in Alaska  are fixed. Only a few leftover in Sweden and new zealand 
+
+saveRDS(allDataCommonzero, file = "./taxon correlations/Fulldata allgroups.rds")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # trash  ####################################
 
 
-mydata_aggregated<- readRDS( file = "./taxon correlations/testdata allorders.rds")
-
-
-#check number of times each order co-occurs within the same dataset
-V <- crossprod(table(mydata_aggregated[,c("Datasource_ID","Order")]))
-diag(V) <- 0
-V_long <- V %>%
-  as_tibble() %>%
-  add_column(Base = row.names(V)) %>%
-  pivot_longer(!Base) %>%
-  rename(Order = name) %>%
-  mutate(log_value = log(value+1))
-
-#plot co-occurrence (need to shade out upper half since it is repeated)
-ggplot(V_long %>% filter(log(value+1)>0))+
-  geom_tile(aes(x=Base,y=Order,fill=log_value))+
-  scale_fill_viridis_c()+
-  theme(axis.text.x = element_text(angle=90))
-
-
-
-
-
-
-
-#choose 2 groups to compare
-ggplot(mydata_wide)+
-  geom_line(aes(x=Year, y = log10(Hemiptera+1), group=Plot_ID),color="red")+
-  geom_line(aes(x=Year, y = log10(Coleoptera+1), group=Plot_ID),color="blue")+
-  facet_wrap(~Datasource_ID,scales="free")
-
-ggplot(mydata_wide)+
-  geom_line(aes(x=Year, y = Trichoptera, group=Plot_ID),color="red")+
-  geom_line(aes(x=Year, y = Ephemeroptera, group=Plot_ID),color="blue")+
-  facet_wrap(~Datasource_name,scales="free")
-
-
-#get simple correlations at the plot-level
-spCors <- mydata_wide %>%
-  group_by(Datasource_name,Plot_ID) %>%
-  summarise(CorrelationTE = cor(Trichoptera,Ephemeroptera),
-            CorrelationDE = cor(Diptera,Ephemeroptera),
-            CorrelationDT = cor(Diptera,Trichoptera))
-
-par(mfrow=c(3,1))
-hist(spCors$CorrelationTE)
-hist(spCors$CorrelationDE)
-hist(spCors$CorrelationDT)    
-    
-    
-    
-    
-    
-    
-    
   
 
 #what about: Owen bees? 
@@ -607,90 +866,8 @@ hist(spCors$CorrelationDT)
   Taxon2 = "Megaloptera"
   
   
-
-comparisons<- fair_comparisons_orderFW
-
-for (i in 1: nrow(comparisons)){ 
-  
-  Taxon1<- comparisons[i, 2]
-  Taxon2<- comparisons[i, 1]
-  
-  mydata_wide <- mydata_aggregated %>%
-    pivot_wider(.,names_from="Order",
-                values_from="Number")
-  
-# do we have enough data in each plot to actually compare these taxa? 
-  # threshold: at least present in half of all years 
-  
-  mydata_taxasubset <-mydata_wide %>%
-    filter(.,!is.na(Taxon1) & !is.na(Taxon2) ) %>%
-    mutate(log_H = log10(Hemiptera+1), log_C = log10(Coleoptera+1) )  
   
   
-  
-mydataAggSubset<- subset(mydata_aggregated, Order == Taxon1& !is.na(Number)  | Order == Taxon2 & !is.na(Number)  )
-  pltQltyCheck<- dcast(mydataAggSubset, Plot_ID + Year ~ Order, value.var = "Number",  fill = -999 , sum)
-  pltQltyCheck<- subset(pltQltyCheck, Ephemeroptera != -999 & Megaloptera != -999)
-  
-
-  
-  metadata_per_order_per_plot<-  mydataAggSubset %>% 
-  mutate(sample = paste(Year, Period, Date)) %>%
-  group_by(  Plot_ID, Order) %>%
-  summarise(
-    Datasource_ID = unique(Datasource_ID), 
-    NumberOfIndPerOrder = sum(Number, na.rm = T ),
-    NumberOfOccPerOrder = sum(Number != 0, na.rm = T ),
-    NumberOfYears = length(unique(Year)),
-    NumberOfSamples = length(unique(sample))
-  ) %>% mutate(meanIndPerSample = NumberOfIndPerOrder / NumberOfSamples, 
-               meanOccurence    = NumberOfOccPerOrder / NumberOfSamples )
-
-  
-widemetadata<-   dcast(metadata_per_order_per_plot, Datasource_ID + Plot_ID ~ Order, value.var = "meanOccurence" ) 
-  
-GoodPlots<- subset(widemetadata, widemetadata[3]>0.5 & widemetadata[4]> 0.5)
-
-nGoodPlots <- nrow(GoodPlots)
-nGoodDatasets<- length(unique(GoodPlots$Datasource_ID))
-
-  
-if (nGoodPlots< 20 | nGoodDatasets < 5) next  #if less than 20 plots or less than 5 atasets, skip comparison 
-
-  # select the good data (each taxon is present in at least half of all years in each plot ):
-mydata_taxasubset<-  mydata_taxasubset[mydata_taxasubset$Plot_ID %in% GoodPlots$Plot_ID, ]
-  
-mydata_taxasubset$log_1 <- log10(mydata_taxasubset[3])
-mydata_taxasubset$log_2 <- log10(mydata_taxasubset[4])
-
-
-
-# run model 
-fit <- brm(
-  mvbind(log_1, log_2) ~ Year + 
-    (1|p|Datasource_ID) +
-    (1|r|Datasource_ID:Plot_ID) +
-    (1|t|Datasource_ID:Plot_ID: Period) +
-    (0 + Year|q|Datasource_ID) +
-    (0 + Year|s|Datasource_ID:Plot_ID) ,
-  data = mydata_taxasubset, 
-  prior = c(set_prior("normal(0, 1)", class = "b",  resp = "logC"),
-            set_prior("normal(0, 10)", class = "Intercept",  resp = "logC"),
-            set_prior("normal(0, 1)", class = "b",  resp = "logH"),
-            set_prior("normal(0, 10)", class = "Intercept",  resp = "logH")),
-  warmup = 1500, 
-  iter   = 10000, 
-  chains = 4, 
-  #inits  = "random",
-  cores  = 4, 
-  #set_rescor = TRUE,
-  control = list(adapt_delta = 0.99)) # There were 1027 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup 
-
-print("done:")
-Sys.time() 
-
-  
-  }
   
   
   
@@ -753,6 +930,24 @@ table(test$Datasource_ID, test$Order)
 
 
 
+
+
+
+
+# check which comparisons make sense in each plot regarding data availability per plot 
+
+# TO DO LATER 
+metadata_per_family_per_plot<-  allDataFamzero %>% 
+  mutate(sample = paste(Year, Period, Date)) %>%
+  group_by(  Plot_ID, Family) %>%
+  summarise(
+    Datasource_ID = unique(Datasource_ID), 
+    Datasource_name = unique(Datasource_name.x), 
+    NumberOfIndPerFamily = sum(Number, na.rm = T ),
+    NumberOfOccPerFamily = sum(Number != 0, na.rm = T ),
+    NumberOfYears = length(unique(Year)),
+    NumberOfSamples = length(unique(sample))
+  )
 
 
 
