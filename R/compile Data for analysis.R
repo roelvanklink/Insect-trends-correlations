@@ -189,6 +189,9 @@ write.csv(taxa, file = "C:\\Dropbox\\Insect Biomass Trends/csvs/taxa5.2.csv", ro
   California.std<- read.csv(file = "California Resh standardized.csv")
   schuch<- read.csv( file = "Schuch data for richness.csv")
     schuch<- subset(schuch, Number >=0) # exclude sight observations
+    schuchAgg<- aggregate(cbind(Number,Original_number) ~ Datasource_name +Plot_ID + Plot_name +Sample_ID +
+                            Year + Taxon + Sex+ Unit  , data = schuch, FUN = "sum")
+    schuchAgg$Period <- 1 ;   schuchAgg$Error<- NA; schuchAgg$Transformed_number<- NA ; schuchAgg$Date <- 1
   LTER_NTL<- read.csv(file = "LterNTLcleanSum.csv")
   Lauwersmeer<- read.csv( file = "lauwersmeer final.csv", header = T)
   Breitenbach <- read.csv(file = "Breitenbach2020.csv")
@@ -199,6 +202,12 @@ write.csv(taxa, file = "C:\\Dropbox\\Insect Biomass Trends/csvs/taxa5.2.csv", ro
   NZ<- read.csv(file = "NZ river monitoring final.csv", header = T)
   PanamaLeafhoppers<- read.csv(file = "C:\\Dropbox\\Insect Biomass Trends/csvs/Panama leafhoppers full dataset.csv", header = T)   
   Sweden<- read.csv(file ="SEFW final 202106.csv", header = T); dim(Sweden)
+   # homogenize some dates where different water layers were sampled on different dates: 
+  Sweden$Date[Sweden$Plot_ID == 1195 & Sweden$Year == 2001 & Sweden$Date == "15-10-2001"]  <- "25-10-2001"
+  Sweden$Date[Sweden$Plot_ID == 1195 & Sweden$Year == 2007 & Sweden$Date == "17-10-2007"]  <- "16-10-2007"
+  Sweden$Date[Sweden$Plot_ID == 1230 & Sweden$Year == 2012 & Sweden$Date == "9-10-2012"]  <- "19-10-2012"
+  Sweden$Date[Sweden$Plot_ID == 1274 & Sweden$Year == 2015 & Sweden$Date == "5-10-2015"]  <- "6-10-2015"
+  
   HubbardBrookBeetles<- read.csv( file = "c:\\Dropbox\\Insect Biomass Trends/csvs/HubbardBrookBeetles.csv")
   UKfw <- read.csv( file = "C:\\Dropbox\\Insect Biomass Trends/csvs/UKfwSelectedData.csv"); dim(UKfw)
   NDlakes <- read.csv( file = "C:\\Dropbox\\Insect Biomass Trends/csvs/NDlakes clean.csv")
@@ -234,7 +243,7 @@ write.csv(taxa, file = "C:\\Dropbox\\Insect Biomass Trends/csvs/taxa5.2.csv", ro
     Finland[, -(1)],
     NZ[, -(1)] ,
     Sweden ,  
-    schuch[, -c(1,6 )],
+    schuchAgg,
     HubbardBrookBeetles,
     NDlakes[, -(1)] , 
     CCsum[, -(1)],
@@ -248,7 +257,7 @@ write.csv(taxa, file = "C:\\Dropbox\\Insect Biomass Trends/csvs/taxa5.2.csv", ro
     AZ2[, -(1)],
     Luquillo[, -(1)], 
     Greenland[, -(1)], 
-    database[, -c(1,6, 17:20)]  ) ; dim(allData)#  727690 
+    database[, -c(1,6, 17:20)]  ) ; dim(allData)#  739450 
 names(allData)[names(allData) == "Unit"]<-"Unit_in_data" # rename to avoid confusion 
 allData<- allData[, -c( which(names(allData) == "Plot_name"), which(names(allData) == "Datasource_name"))  ]
     
@@ -302,6 +311,7 @@ metadata_per_plot<-  allData %>%
   summarise(
     Datasource_ID = unique(Datasource_ID), 
     Datasource_name = unique(Datasource_name), 
+    Plot_name = unique(Plot_name),
     Start = min(Year, na.rm = T),
     End = max(Year, na.rm = T),
     Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1, 
@@ -348,7 +358,7 @@ allDataOrd_aggregated <- allDataOrd_select %>%
   summarise(Number = sum(Number)) 
 allDataOrd_aggregated$Period[is.na(allDataOrd_aggregated$Period)] <- 1
 allDataOrd_aggregated$Date[is.na(allDataOrd_aggregated$Date)] <- 1
-dim(allDataOrd_aggregated) #76328
+dim(allDataOrd_aggregated) #79324
 
 
 
@@ -459,7 +469,7 @@ metadata_per_order_per_plot<-  allDataOrdzero %>%
 
 # list of observations to be excluded, bacause they were observed in less than half of the samples 
 exclude<- subset(metadata_per_order_per_plot,  floor(NumberOfIndPerOrder) ==  NumberOfIndPerOrder &    meanOccPerSample <0.5)
-dim(exclude) # 1774
+dim(exclude) # 1768
 print(exclude, n = 100)
 
 # remove these
@@ -533,7 +543,7 @@ dim( cooc_long)
 fair_comparisons_order<- subset(cooc_long, Datasets > 5 | Plots > 20) # 
 dim(fair_comparisons_order)
 
-ggplot(subset(cooc_long, Datasets > 5 | Plots > 20) ) +
+ggplot(subset(cooc_long, Datasets > 4 & Plots > 19) ) +
   geom_tile(aes(x=Taxon1, y=Taxon2 , fill=Datasets))+
   scale_fill_viridis_c()+
   facet_wrap(.~Realm, scales = "free")+
@@ -546,16 +556,20 @@ ggplot(subset(cooc_long, Datasets > 5 ) ) +
   theme(axis.text.x = element_text(angle=90)) # this looks more reasonable 
 
 
-ok_comparisons_order<- subset(cooc_long, Datasets > 5 | Plots > 20); dim(ok_comparisons_order) # 118
-fair_comparisons_order<- subset(cooc_long, Datasets < 5 & Plots > 20); dim(fair_comparisons_order) # 42
-good_comparisons_order<- subset(cooc_long, Datasets >= 5); dim(good_comparisons_order) #81
+ok_comparisons_order<- subset(cooc_long, Datasets <5 & Plots > 19); dim(ok_comparisons_order) # 69
+#fair_comparisons_order<- subset(cooc_long, Datasets < 5 & Plots > 20); dim(fair_comparisons_order) # 42
+good_comparisons_order<- subset(cooc_long, Datasets >= 5 & Plots > 19); dim(good_comparisons_order) #50
 
 # make job array file 
 good_comparisons_order$modelName<- paste0(substr(good_comparisons_order$Taxon1,1,4), "_",
                                           substr(good_comparisons_order$Taxon2, 1,4), "_", 
                                           substr(good_comparisons_order$Realm, 1,1))
+ok_comparisons_order$modelName<- paste0(substr(ok_comparisons_order$Taxon1,1,4), "_",
+                                          substr(ok_comparisons_order$Taxon2, 1,4), "_", 
+                                          substr(ok_comparisons_order$Realm, 1,1))
 
 write.csv(good_comparisons_order, "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs.csv")
+write.csv(ok_comparisons_order, "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_less_good.csv")
 
 
 
@@ -768,29 +782,33 @@ dim( cooc_long)
 
 fair_comparisons_group<- subset(cooc_long, Datasets > 5 | Plots > 20) # 
 
-ggplot(subset(cooc_long, Datasets > 5 | Plots > 20) ) +
+ggplot(subset(cooc_long, Datasets > 4 & Plots > 19) ) +
   geom_tile(aes(x=Taxon1, y=Taxon2 , fill=Datasets))+
   scale_fill_viridis_c()+
   facet_wrap(.~Realm, scales = "free")+
   theme(axis.text.x = element_text(angle=90))
 
-ggplot(subset(cooc_long, Datasets > 5 ) ) +
+ggplot(subset(cooc_long, Datasets <5 & Plots > 19 ) ) +
   geom_tile(aes(x=Taxon1, y=Taxon2 , fill=Datasets))+
   scale_fill_viridis_c()+
   facet_wrap(.~Realm, scales = "free")+
   theme(axis.text.x = element_text(angle=90)) # this looks more reasonable 
 
 
-ok_comparisons_group<- subset(cooc_long, Datasets > 5 | Plots > 20); dim(ok_comparisons_group) # 160
-fair_comparisons_group<- subset(cooc_long, Datasets < 5 & Plots > 20); dim(fair_comparisons_group) # 87
-good_comparisons_group<- subset(cooc_long, Datasets >= 5); dim(good_comparisons_group) #77 
+ok_comparisons_group<- subset(cooc_long, Datasets <5 & Plots > 19); dim(ok_comparisons_group) # 160
+#fair_comparisons_group<- subset(cooc_long, Datasets < 5 & Plots > 20); dim(fair_comparisons_group) # 87
+good_comparisons_group<- subset(cooc_long, Datasets >= 5 & Plots > 19); dim(good_comparisons_group) #77 
 
 # make job array file 
 good_comparisons_group$modelName<- paste0(substr(good_comparisons_group$Taxon1,1,4), "_",
                                           substr(good_comparisons_group$Taxon2, 1,4), "_", 
                                           substr(good_comparisons_group$Realm, 1,1))
+ok_comparisons_group$modelName<- paste0(substr(ok_comparisons_group$Taxon1,1,4), "_",
+                                          substr(ok_comparisons_group$Taxon2, 1,4), "_", 
+                                          substr(ok_comparisons_group$Realm, 1,1))
 
 write.csv(good_comparisons_group, "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_groups.csv")
+write.csv(ok_comparisons_group, "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_groups_less_good.csv")
 
 
 
