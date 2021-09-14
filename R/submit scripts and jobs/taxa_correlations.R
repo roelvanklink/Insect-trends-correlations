@@ -14,7 +14,7 @@ library(tidyverse)
 #fit multivariate model
 #https://cran.r-project.org/web/packages/brms/vignettes/brms_multivariate.html
 library(brms)
-mydata_aggregated <- readRDS(file = "C:/Dropbox/Insect Biomass Trends/taxon correlations/testdata allorders.rds")
+mydata_aggregated <- readRDS(file = "C:/Dropbox/Insect Biomass Trends/csvs/taxon correlations/testdata allorders.rds")
 
 args <- commandArgs(trailingOnly = T)
 output_dir <- args[1]
@@ -26,14 +26,14 @@ options(mc.cores = cpus_per_task)
 
 
 #expand orders into different columns
-mydata_wide <- mydata_aggregated %>%
+mydata_wide <- allDataOrdzero %>%
   pivot_wider(.,names_from="Order",
               values_from="Number")
 
 
 
 mydata_taxasubset <-mydata_wide %>%
-  filter(.,!is.na(Hemiptera) & !is.na(Coleoptera) ) %>%
+  filter(.,!is.na(Hemiptera) & !is.na(Coleoptera) & Realm == "Terrestrial" ) %>%
   mutate(log_H = log10(Hemiptera+1), log_C = log10(Coleoptera+1) )  
 
 
@@ -42,16 +42,16 @@ mydata_taxasubset <-mydata_wide %>%
 
 Sys.time()
 fit3 <- brm(
-  mvbind(log_H, log_C) ~ Year + (1|p|Datasource_ID) +
-                                (1|r|Datasource_ID:Plot_ID) +
-                                (1|t|Datasource_ID:Plot_ID: Period) +
-                                (0 + Year|q|Datasource_ID) +
-                                (0 + Year|s|Datasource_ID:Plot_ID) ,
+  mvbind(log_H, log_C) ~ Year + #(1|p|Datasource_ID) +
+                                (1|r|Plot_ID) + #Datasource_ID:
+                                #(1|t|Datasource_ID:Plot_ID: Period) +
+                                #(0 + Year|q|Datasource_ID) +
+                                (0 + Year|s|Plot_ID) , #Datasource_ID:
   data = mydata_taxasubset, 
   prior = c(set_prior("normal(0, 1)", class = "b",  resp = "logC"),
-            set_prior("normal(0, 10)", class = "Intercept",  resp = "logC"),
+            set_prior("normal(0, 5)", class = "Intercept",  resp = "logC"),
             set_prior("normal(0, 1)", class = "b",  resp = "logH"),
-            set_prior("normal(0, 10)", class = "Intercept",  resp = "logH")),
+            set_prior("normal(0, 5)", class = "Intercept",  resp = "logH")),
   warmup = 1000, 
   iter   = 5000, 
   chains = 3, 

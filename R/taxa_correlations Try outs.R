@@ -40,3 +40,8 @@ summary(fit2)
 
 
 
+
+
+# load tryout results:
+fit<- read_rds("./taxon correlations/taxa cor test model 1.rds")
+summary(fit)

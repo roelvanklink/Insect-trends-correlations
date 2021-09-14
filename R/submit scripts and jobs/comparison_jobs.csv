@@ -1,0 +1,72 @@
+,Taxon1,Taxon2,Realm,Plots,Datasets,modelName,problem,transitions,Rhat,rerunning,enough_data
+1,Coleoptera,Araneae,Terrestrial,133,9,Cole_Aran_T,,,1.06,y,
+2,Diptera,Araneae,Terrestrial,129,8,Dipt_Aran_T,,34000,3.46,y,
+3,Hemiptera,Araneae,Terrestrial,123,6,Hemi_Aran_T,,,1.59,y,
+4,Hymenoptera,Araneae,Terrestrial,124,7,Hyme_Aran_T,,There were 34000 ,2.67,y,
+5,Lepidoptera,Araneae,Terrestrial,117,5,Lepi_Aran_T,,,3.79,y,
+6,Opiliones,Araneae,Terrestrial,45,5,Opil_Aran_T,,,,y,
+7,Thysanoptera,Araneae,Terrestrial,72,6,Thys_Aran_T,,,,y,
+8,Diptera,Coleoptera,Freshwater,874,14,Dipt_Cole_F,stil running,,,y,
+9,Diptera,Coleoptera,Terrestrial,129,9,Dipt_Cole_T,,,,y,
+10,Ephemeroptera,Coleoptera,Freshwater,826,14,Ephe_Cole_F,stil running,,,y,
+11,Hemiptera,Coleoptera,Freshwater,405,10,Hemi_Cole_F,,33991,np,y,
+12,Hemiptera,Coleoptera,Terrestrial,126,9,Hemi_Cole_T,,33973,1.47,y,
+13,Hymenoptera,Coleoptera,Terrestrial,125,8,Hyme_Cole_T,,33975,np,y,
+14,Lepidoptera,Coleoptera,Freshwater,82,10,Lepi_Cole_F,,,,y,
+15,Lepidoptera,Coleoptera,Terrestrial,121,9,Lepi_Cole_T,,,,y,
+16,Megaloptera,Coleoptera,Freshwater,429,9,Mega_Cole_F,,33948,1.96,y,
+17,Neuroptera,Coleoptera,Terrestrial,54,5,Neur_Cole_T,,,,y,
+18,Odonata,Coleoptera,Freshwater,377,12,Odon_Cole_F,,25499,np,y,
+19,Opiliones,Coleoptera,Terrestrial,45,5,Opil_Cole_T,,,,y,
+20,Plecoptera,Coleoptera,Freshwater,583,9,Plec_Cole_F,,,,y,
+21,Thysanoptera,Coleoptera,Terrestrial,71,6,Thys_Cole_T,,,,y,
+22,Trichoptera,Coleoptera,Freshwater,811,14,Tric_Cole_F,stil running,,,y,
+23,Trombidiformes,Coleoptera,Freshwater,722,7,Trom_Cole_F,stil running,33984,3.37,y,
+24,Ephemeroptera,Diptera,Freshwater,921,21,Ephe_Dipt_F,stil running,,,y,
+25,Hemiptera,Diptera,Freshwater,413,10,Hemi_Dipt_F,,33983,np,y,
+26,Hemiptera,Diptera,Terrestrial,123,7,Hemi_Dipt_T,,34000,3.08,y,
+27,Hymenoptera,Diptera,Terrestrial,124,8,Hyme_Dipt_T,,34000,2.92,y,
+28,Lepidoptera,Diptera,Freshwater,84,10,Lepi_Dipt_F,,,,y,
+29,Lepidoptera,Diptera,Terrestrial,118,7,Lepi_Dipt_T,,27390,2.55,y,
+30,Megaloptera,Diptera,Freshwater,462,9,Mega_Dipt_F,,29411,np,y,
+31,Odonata,Diptera,Freshwater,396,13,Odon_Dipt_F,,,,y,
+32,Plecoptera,Diptera,Freshwater,602,9,Plec_Dipt_F,,,,y,
+33,Thysanoptera,Diptera,Terrestrial,72,6,Thys_Dipt_T,,,,y,
+34,Trichoptera,Diptera,Freshwater,906,20,Tric_Dipt_F,,,,y,
+35,Trombidiformes,Diptera,Freshwater,813,7,Trom_Dipt_F,,,,y,
+36,Hemiptera,Ephemeroptera,Freshwater,367,10,Hemi_Ephe_F,,28879,np,y,
+37,Lepidoptera,Ephemeroptera,Freshwater,84,10,Lepi_Ephe_F,,,,y,
+38,Megaloptera,Ephemeroptera,Freshwater,453,9,Mega_Ephe_F,,,np,y,
+39,Odonata,Ephemeroptera,Freshwater,379,13,Odon_Ephe_F,,,,y,
+40,Plecoptera,Ephemeroptera,Freshwater,599,10,Plec_Ephe_F,stil running,,,y,
+41,Trichoptera,Ephemeroptera,Freshwater,883,21,Tric_Ephe_F,stil running,,,y,
+42,Trombidiformes,Ephemeroptera,Freshwater,736,7,Trom_Ephe_F,stil running,,,y,
+43,Hymenoptera,Hemiptera,Terrestrial,120,6,Hyme_Hemi_T,,There were 34000 transitions after warmup that exceeded the maximum treedepth,2.57,y,
+44,Lepidoptera,Hemiptera,Freshwater,49,8,Lepi_Hemi_F,,,2.14,y,less than 5 datasets
+45,Lepidoptera,Hemiptera,Terrestrial,121,8,Lepi_Hemi_T,,30808,2.46,y,
+46,Megaloptera,Hemiptera,Freshwater,240,9,Mega_Hemi_F,,,,y,
+47,Neuroptera,Hemiptera,Terrestrial,54,5,Neur_Hemi_T,,,,y,
+48,Odonata,Hemiptera,Freshwater,222,10,Odon_Hemi_F,,7802,np,y,VICTORY
+49,Orthoptera,Hemiptera,Terrestrial,119,5,Orth_Hemi_T,,33794,1.38,y,
+50,Plecoptera,Hemiptera,Freshwater,204,7,Plec_Hemi_F,,33731,1.3,y,
+51,Thysanoptera,Hemiptera,Terrestrial,71,5,Thys_Hemi_T,,33925,1.48,y,less than 5 datasets
+52,Trichoptera,Hemiptera,Freshwater,350,10,Tric_Hemi_F,,16893,np,y,good
+53,Trombidiformes,Hemiptera,Freshwater,337,6,Trom_Hemi_F,,33931,1.59,y,
+54,Lepidoptera,Hymenoptera,Terrestrial,119,7,Lepi_Hyme_T,,33934,1.82,y,
+55,Thysanoptera,Hymenoptera,Terrestrial,71,6,Thys_Hyme_T,,,,,less than 5 datasets
+56,Megaloptera,Lepidoptera,Freshwater,50,8,Mega_Lepi_F,,,,,less than 5 datasets
+57,Neuroptera,Lepidoptera,Terrestrial,53,5,Neur_Lepi_T,,,,,less than 5 datasets
+58,Odonata,Lepidoptera,Freshwater,42,10,Odon_Lepi_F,,,,,less than 5 datasets
+59,Plecoptera,Lepidoptera,Freshwater,62,7,Plec_Lepi_F,,,,,less than 5 datasets
+60,Thysanoptera,Lepidoptera,Terrestrial,69,5,Thys_Lepi_T,,,,,less than 5 datasets
+61,Trichoptera,Lepidoptera,Freshwater,84,10,Tric_Lepi_F,,,,,less than 5 datasets
+62,Trombidiformes,Lepidoptera,Freshwater,38,5,Trom_Lepi_F,,,,,less than 5 datasets
+63,Odonata,Megaloptera,Freshwater,231,9,Odon_Mega_F,,,,,less than 5 datasets
+64,Plecoptera,Megaloptera,Freshwater,309,7,Plec_Mega_F,,33838,np,,
+65,Trichoptera,Megaloptera,Freshwater,457,9,Tric_Mega_F,,85,np,,
+66,Trombidiformes,Megaloptera,Freshwater,361,5,Trom_Mega_F,,33989,2.52,,less than 5 datasets
+67,Plecoptera,Odonata,Freshwater,209,8,Plec_Odon_F,,33772,1.96,,less than 5 datasets
+68,Trichoptera,Odonata,Freshwater,369,13,Tric_Odon_F,,30226,,,
+69,Trombidiformes,Odonata,Freshwater,332,6,Trom_Odon_F,,9122,np,,
+70,Trichoptera,Plecoptera,Freshwater,606,10,Tric_Plec_F,stil running,,,,
+71,Trombidiformes,Trichoptera,Freshwater,733,7,Trom_Tric_F,,,,,
