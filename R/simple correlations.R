@@ -6,20 +6,38 @@ setwd("C:\\Dropbox\\Insect Biomass Trends/csvs/taxon correlations/")
 
 comparisons<-read.csv( "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs.csv")
 
-myData<- readRDS("Fulldata allorders.rds")
+myData<- readRDS("Fulldata allorders.rds"); dim(myData)
 
 
-Hemi_Aran_T<- readRDS("Hemi_Aran_T_model.rds")
-summary(Hemi_Aran_T)
-plot(Hemi_Aran_T)
+#data check: 
+metadata_per_date_per_plot<-  myData %>% 
+#  mutate(sample = paste(Year, Period, Date)) %>%
+  group_by(  Plot_ID, Year, Period, Order) %>%
+  summarise(
+    #Realm = unique(Realm), 
+    Datasource_ID = unique(Datasource_ID), 
+    Datasource_name = unique(Datasource_name), 
+    Location = unique(Location),
+    NumberOfRecords = length(Number),
+    NumberOfIndividuals = sum(Number, na.rm = T ),
+  )
+dim(metadata_per_date_per_plot)
 
-Lepi_Hemi_T<- readRDS("Lepi_Hemi_T_model.rds")
-summary(Lepi_Hemi_T)
-plot(Lepi_Hemi_T)
+ss <- subset(metadata_per_date_per_plot, NumberOfRecords>1)
+sample_n(as.data.frame(ss), 20) 
+unique(ss$Datasource_name) # should only be Arizona, greenland, New Zealand 
 
-Orth_Hemi_T<- readRDS("Orth_Hemi_T_model.rds")
-summary(Orth_Hemi_T)
-plot(Orth_Hemi_T)
+#Hemi_Aran_T<- readRDS("Hemi_Aran_T_model.rds")
+##summary(Hemi_Aran_T)
+#plot(Hemi_Aran_T)
+
+#Lepi_Hemi_T<- readRDS("Lepi_Hemi_T_model.rds")
+#summary(Lepi_Hemi_T)
+#plot(Lepi_Hemi_T)
+
+#Orth_Hemi_T<- readRDS("Orth_Hemi_T_model.rds")
+#summary(Orth_Hemi_T)
+#plot(Orth_Hemi_T)
 
 
 
@@ -32,7 +50,7 @@ mydata_wide <- myData %>%
 all.relations<- NULL
 all.all.ests<- NULL
 
-for (k in c(1:71)) { 
+for (k in c(1:nrow(comparisons))) { 
 
 Taxon1<- comparisons[k, "Taxon1"]; print(Taxon1)
 Taxon2<- comparisons[k, "Taxon2"]; print(Taxon2)
@@ -108,13 +126,16 @@ dat<- subset(mydata_taxasubset, Plot_ID == plts[i])
 mod1<- summary(lm(log_T1 ~ Year, data = dat  ))  
 mod2<- summary(lm(log_T2 ~ Year, data = dat  ))  
 
-est<- data.frame(estimateT1 = mod1$coefficients[2], 
+est<- data.frame(Taxon1 = Taxon1,
+                 Taxon2 = Taxon2,
+                 Plot = plts[i],
+                 estimateT1 = mod1$coefficients[2], 
                  stdErrorT1 = mod1$coefficients[4],
                  estimateT2 = mod2$coefficients[2], 
                  stdErrorT2 = mod2$coefficients[4],
-                  Plot_ID = unique(dat$Plot_ID),
-                  Datasource_ID = unique(dat$Datasource_ID),
-                  Realm = realm)
+                 Plot_ID = unique(dat$Plot_ID),
+                 Datasource_ID = unique(dat$Datasource_ID),
+                 Realm = realm)
 
   
 all.ests<- rbind(all.ests, est)
@@ -157,7 +178,7 @@ all.ests$T1lower<- all.ests$estimateT1 - all.ests$stdErrorT1
 all.ests$T2upper<- all.ests$estimateT2 + all.ests$stdErrorT2
 all.ests$T2lower<- all.ests$estimateT2 - all.ests$stdErrorT2
 
-}
+
 
 print(
 ggplot(all.ests, aes(x = estimateT1, y = estimateT2, color = as.factor(Datasource_ID)))+ 
@@ -173,12 +194,11 @@ ggplot(all.ests, aes(x = estimateT1, y = estimateT2, color = as.factor(Datasourc
   ggtitle ( comparisons[k, "modelName"])#+
   #facet_wrap(.~Datasource_ID)
 )
-
+}
 table(all.all.ests$estimateT1>0, all.all.ests$estimateT2>0)
 hist(all.all.ests$estimateT1)
 hist(all.all.ests$estimateT2) # Almost equal increaes and decreases, but parallel increases ad declines are more common 
 plot(all.all.ests$estimateT1~ all.all.ests$estimateT2)
-all.all.ests <- merge(all.all.ests, studies, by = "Datasource_ID")
 
 ggplot(all.all.ests, aes(x = estimateT1, y = estimateT2)) + 
     geom_bin2d(bins=25)+ 
@@ -207,22 +227,48 @@ ggplot(all.all.ests, aes(x = estimateT1, y = estimateT2)) +
     theme_classic()+
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
     ggtitle("major axis regression")
-  plot(density(all.relations$MAslopeEdit))
+  plot(density(all.relations$MAslope))
   
   #correlation coefficients
   all.relations$Cor.rEdit<-all.relations$cor.r 
   all.relations$Cor.rEdit[all.relations$cor.p>0.05] <- NA
   
-    ggplot(all.relations, aes(Taxon1, Taxon2, fill= Cor.rEdit)) + 
+    ggplot(all.relations, aes(Taxon1, Taxon2, fill= cor.r)) + 
     geom_tile() +
-    scale_fill_gradient2(low = "red", mid  = "grey90", high = "blue", na.value = "grey50",) +
-  facet_wrap(.~ Realm, scales = 'free')+
+    scale_fill_gradient2(low = "blue", mid  = "grey90", high = "red", na.value = "grey50",) +
+    facet_wrap(.~ Realm, scales = 'free')+
     theme_classic()+
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
       ggtitle("correlation coefficients")
   plot(density(all.relations$cor.r), main = "Density of correlation coefficients")
   
   
+a<- unique((all.relations[, c("Taxon1", "Realm")]))  
+b<- unique((all.relations[, c("Taxon2", "Realm")]))  
+names(b)<- names(a)
+taxaRealm<- unique(rbind(a,b))
+
+meanCorPerTaxon <- NULL
+for (i in 1 : nrow(taxaRealm)){ 
+subs<- subset(all.relations, Taxon1 == taxaRealm[i,"Taxon1"] & Realm == taxaRealm[i,"Realm"] | 
+         Taxon2 == taxaRealm[i,"Taxon1"] & Realm == taxaRealm[i,"Realm"])  
+
+res<-data.frame(
+  Taxon = taxaRealm[i,"Taxon1"],
+  Realm = taxaRealm[i,"Realm"],
+  nrCorrelations = nrow(subs),
+  meanCor = mean(subs$cor.r), 
+  sdCor = sd(subs$cor.r)  )
+
+meanCorPerTaxon<- rbind (meanCorPerTaxon, res)
+}
+arrange(meanCorPerTaxon, Realm, Taxon)
+ggplot(meanCorPerTaxon, aes(x = Taxon, y = meanCor, color = Realm))+
+  geom_point(position=position_dodge(width= 0.6)) +
+  geom_errorbar(aes( ymin = meanCor + sdCor, ymax = meanCor - sdCor),  position=position_dodge(width= 0.6), width = 0.6)+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  
+
   plot(all.relations$MAslopeEdit, all.relations$Cor.rEdit)
   
   fit3 <- brm(
