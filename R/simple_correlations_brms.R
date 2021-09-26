@@ -3,6 +3,7 @@ library(brms)
 library(rstan)
 library(reshape2)
 library(smatr)
+library(posterior)
 
 #choose HPC folder
 myfolder <- "/data/idiv_ess/Roel" #Diana's HPC
@@ -106,13 +107,15 @@ prior1 = c(set_prior("normal(0,1)", class = "b"))
 mod1_data <- make_standata(log_T1 ~ cYear,data = dat, prior = prior1)
 mod2_data <- make_standata(log_T2 ~ cYear,data = dat, prior = prior1)  
 
+modelfile <- paste(myfolder,"basic_trend.stan",sep="/")
+
 #run model
-mod1 <- stan("R/stan_models/basic_trend.stan", 
+mod1 <- stan(modelfile, 
              data = mod2_data, 
              chains = 4,
              iter = 5000)
 
-mod2 <- stan("R/stan_models/basic_trend.stan", 
+mod2 <- stan(modelfile, 
              data = mod2_data, 
              chains = 4,
              iter = 5000)
