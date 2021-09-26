@@ -34,7 +34,7 @@ indexTaxon1 <-which(names(mydata_wide) == Taxon1)
 indexTaxon2 <-which(names(mydata_wide) == Taxon2)
 
 mydata_taxasubset <- subset(mydata_wide, Realm == realm &  !is.na(mydata_wide[indexTaxon1]) & !is.na(mydata_wide[indexTaxon2]))
-mydata_taxasubset$log_T1 <- log10(pull(mydata_taxasubset[indexTaxon1])+1  )
+mydata_taxasubset$log_T1 <- log10(pull(mydata_taxasubset[indexTaxon1])+1)
 mydata_taxasubset$log_T2 <- log10(pull(mydata_taxasubset[indexTaxon2])+1)   
 
 mydata_taxasubset <- mydata_taxasubset[, c("Plot_ID", "Date",   "Datasource_ID",  "Year", "Period", "Location", 
@@ -80,11 +80,11 @@ plotSummary <- mydata_taxasubset %>%
                 group_by(Plot_ID) %>%
                 summarise(nuYears = length(unique(Year)))
 
-#subset to those with more than 2 years of data
+#also subset to those with more than 2 years of data
 mydata_taxasubset <- filter(mydata_taxasubset, 
                             Plot_ID %in% plotSummary$Plot_ID[plotSummary$nuYears>2])
 
-plts<- unique(mydata_taxasubset$Plot_ID)
+plts<- sort(unique(mydata_taxasubset$Plot_ID))
 all.ests <- NULL
 
 # try to get SLURM_CPUS_PER_TASK from submit script, otherwise fall back to 1
@@ -101,7 +101,7 @@ dat$cYear <- dat$Year - median(dat$Year)
 dat$iYear <- dat$Year - min(dat$Year) + 1
 
 #brm trends - we might need to consider more complex models here
-prior1 = c(set_prior("normal(0,1)", class = "b"))
+prior1 = c(set_prior("normal(0,10)", class = "b"))
 
 #get data for stan model (using "make_stancode")
 mod1_data <- make_standata(log_T1 ~ cYear,data = dat, prior = prior1)
@@ -136,6 +136,14 @@ est <- data.frame(sample = 1:1000,
 
   
 all.ests<- rbind(all.ests, est)
+
+
+#write a file during the loop to check where things are crashing
+write.table(data.frame(Plot_ID = plts[i]),
+          file = paste0("output_",realm,"_",Taxon1,"_",Taxon2,".txt"),
+          sep = "\t",
+          append = TRUE,
+          row.names = FALSE)
 
 }
 
