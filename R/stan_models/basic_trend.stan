@@ -27,7 +27,7 @@ model {
   // likelihood including constants
   target += normal_id_glm_lpdf(Y | Xc, Intercept, b, sigma);
   // priors including constants
-  target += normal_lpdf(b | 0,2);
+  target += normal_lpdf(b | 0, 10);
   target += student_t_lpdf(Intercept | 3, 3.1, 2.5);
   target += student_t_lpdf(sigma | 3, 0, 2.5)
   - 1 * student_t_lccdf(0 | 3, 0, 2.5);
