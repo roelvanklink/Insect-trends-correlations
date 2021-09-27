@@ -849,12 +849,6 @@ saveRDS(allDataCommonzero, file = "./taxon correlations/Fulldata allgroups.rds")
 
 
 
-
-
-
-
-
-
 # trash  ####################################
 
 
