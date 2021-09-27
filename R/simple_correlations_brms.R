@@ -100,18 +100,29 @@ dat<- subset(mydata_taxasubset, Plot_ID == plts[i])
 dat$cYear <- dat$Year - median(dat$Year)
 dat$iYear <- dat$Year - min(dat$Year) + 1
 
+#make sure there is no NAs
+dat <- subset(dat, !is.na(log_T1))
+dat <- subset(dat, !is.na(log_T2))
+
 #brm trends - we might need to consider more complex models here
-prior1 = c(set_prior("normal(0,10)", class = "b"))
+prior1 = c(set_prior("normal(0,5)", class = "b"))
 
 #get data for stan model (using "make_stancode")
 mod1_data <- make_standata(log_T1 ~ cYear,data = dat, prior = prior1)
 mod2_data <- make_standata(log_T2 ~ cYear,data = dat, prior = prior1)  
 
+#add on variables
+mod1_data$meanResponse <- round(median(dat$log_T1), 1)
+mod1_data$sdResponse <- max(round(mad(dat$log_T1), 1), 2.5)
+mod2_data$meanResponse <- round(median(dat$log_T2), 1)
+mod2_data$sdResponse <- max(round(mad(dat$log_T2), 1), 2.5)
+
+#specific file
 modelfile <- paste(myfolder,"basic_trend.stan",sep="/")
 
 #run model
 mod1 <- stan(modelfile, 
-             data = mod2_data, 
+             data = mod1_data, 
              chains = 4,
              iter = 5000)
 
