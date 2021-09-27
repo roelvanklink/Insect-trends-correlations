@@ -6,6 +6,8 @@ data {
   vector[N] Y;  // response variable
   int<lower=1> K;  // number of population-level effects
   matrix[N, K] X;  // population-level design matrix
+  real meanResponse; //mean value of data
+  real sdResponse; //sd value of data
 }
 transformed data {
   int Kc = K - 1;
@@ -27,10 +29,10 @@ model {
   // likelihood including constants
   target += normal_id_glm_lpdf(Y | Xc, Intercept, b, sigma);
   // priors including constants
-  target += normal_lpdf(b | 0, 10);
-  target += student_t_lpdf(Intercept | 3, 3.1, 2.5);
-  target += student_t_lpdf(sigma | 3, 0, 2.5)
-  - 1 * student_t_lccdf(0 | 3, 0, 2.5);
+  target += normal_lpdf(b | 0, 5);
+  target += student_t_lpdf(Intercept | 3, meanResponse, sdResponse);
+  target += student_t_lpdf(sigma | 3, 0, sdResponse)
+  - 1 * student_t_lccdf(0 | 3, 0, sdResponse);
 }
 generated quantities {
   // actual population-level intercept
