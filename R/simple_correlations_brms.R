@@ -2,12 +2,11 @@ library(tidyverse)
 library(brms)
 library(rstan)
 library(reshape2)
-library(smatr)
 library(posterior)
 
 #choose HPC folder
 myfolder <- "/data/idiv_ess/Roel" #Diana's HPC
-
+myfolder <- "/data/idiv_chase/vanKlink"
 #read in data
 myData<- readRDS(paste(myfolder,"Fulldata allorders.rds",sep="/"))
 
@@ -20,8 +19,12 @@ all.relations<- NULL
 all.all.ests<- NULL
 
 #all comparison to make
-comparisons<-read.csv(paste(myfolder,"comparison_jobs.csv",sep="/"))
-nrow(comparisons)#71
+good_comparisons_order<-read.csv(paste(myfolder,"comparison_jobs.csv",sep="/"))
+ok_comparisons_order<-  read.csv(paste(myfolder,"comparison_jobs_less_good.csv",sep="/"))
+comparisons <- rbind(good_comparisons_order, ok_comparisons_order)
+comparisons<- arrange(comparisons, desc(Realm), desc(Datasets))
+
+nrow(comparisons)#119
 task.id = as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID", "1"))
 
 #get parameters for this task is
@@ -65,20 +68,28 @@ widemetadata<-   dcast(metadata_per_order_per_plot, Datasource_ID + Plot_ID ~ Or
 
 GoodPlots<- subset(widemetadata, widemetadata[3]>0.5 & widemetadata[4]> 0.5 & !is.na(widemetadata[3]) & !is.na(widemetadata[4]))
 
-nGoodPlots <- nrow(GoodPlots); print(nGoodPlots)
-nGoodDatasets<- length(unique(GoodPlots$Datasource_ID)); print(nGoodDatasets)
+nGoodPlots <- nrow(GoodPlots); print(paste( "number good plots", nGoodPlots))
+nGoodDatasets<- length(unique(GoodPlots$Datasource_ID)); print(paste("number good datasets", nGoodDatasets))
 
 
-if (nGoodDatasets < 5) print(paste("WARNING:", comparisons[k, "modelName"],   "HAS < 5 DATASETS"))  #if less than 20 plots or less than 5 atasets, skip comparison 
-if (nGoodDatasets < 5 & nGoodPlots < 20) print(paste("WARNING:", comparisons[k, "modelName"],   "SKIPPED"))  #if less than 20 plots or less than 5 atasets, skip comparison 
+if (nGoodDatasets < 5) print(paste("WARNING:", comparisons[task.id, "modelName"],   "HAS < 5 DATASETS"))  #if less than 20 plots or less than 5 atasets, skip comparison 
+if (nGoodDatasets < 5 & nGoodPlots < 20) print(paste("WARNING:",  Taxon1, Taxon2, realm,   "SKIPPED"))  #if less than 20 plots or less than 5 datasets, skip comparison 
+
+if (nGoodDatasets < 5 & nGoodPlots < 20){
+  write.table(c(realm, Taxon1, Taxon2, "SKIPPED" ),
+              file = paste0(task.id,  realm, "_" ,Taxon1, "_" ,Taxon2, "_SKIPPED.txt"),
+              sep = "\t",
+              row.names = FALSE)}
+
+
 if (nGoodDatasets < 5 & nGoodPlots < 20) next
 # select the good data (each taxon is present in at least half of all years in each plot ):
 mydata_taxasubset<-  mydata_taxasubset[mydata_taxasubset$Plot_ID %in% GoodPlots$Plot_ID, ]
 
 #check data per plot
 plotSummary <- mydata_taxasubset %>%
-                group_by(Plot_ID) %>%
-                summarise(nuYears = length(unique(Year)))
+  group_by(Plot_ID) %>%
+  summarise(nuYears = length(unique(Year)))
 
 #also subset to those with more than 2 years of data
 mydata_taxasubset <- filter(mydata_taxasubset, 
@@ -95,78 +106,88 @@ options(mc.cores = cpus_per_task)
 #loop through each plot 
 for(i in 1:length(plts)){
   
-#first get trends for each species
-dat<- subset(mydata_taxasubset, Plot_ID == plts[i])
-dat$cYear <- dat$Year - median(dat$Year)
-dat$iYear <- dat$Year - min(dat$Year) + 1
-
-#make sure there is no NAs
-dat <- subset(dat, !is.na(log_T1))
-dat <- subset(dat, !is.na(log_T2))
-
-#brm trends - we might need to consider more complex models here
-prior1 = c(set_prior("normal(0,5)", class = "b"))
-
-#get data for stan model (using "make_stancode")
-mod1_data <- make_standata(log_T1 ~ cYear,data = dat, prior = prior1)
-mod2_data <- make_standata(log_T2 ~ cYear,data = dat, prior = prior1)  
-
-#add on variables
-mod1_data$meanResponse <- round(median(dat$log_T1), 1)
-mod1_data$sdResponse <- max(round(mad(dat$log_T1), 1), 2.5)
-mod2_data$meanResponse <- round(median(dat$log_T2), 1)
-mod2_data$sdResponse <- max(round(mad(dat$log_T2), 1), 2.5)
-
-#specific file
-modelfile <- paste(myfolder,"basic_trend.stan",sep="/")
-
-#run model
-mod1 <- stan(modelfile, 
-             data = mod1_data, 
-             chains = 4,
-             iter = 5000)
-
-mod2 <- stan(modelfile, 
-             data = mod2_data, 
-             chains = 4,
-             iter = 5000)
-
-#get 1000 samples from the posterior of each trend estimate
-fits1 <- as_draws_df(mod1)
-samples1 <- sample(fits1$`b[1]`,1000)
-fits2 <- as_draws_df(mod2)
-samples2 <- sample(fits2$`b[1]`,1000)
-
-#put all into a data frame
-est <- data.frame(sample = 1:1000,
-                  trend_T1 = samples1,
-                  trend_T2 = samples2,
-                  Plot_ID = unique(dat$Plot_ID),
-                  Datasource_ID = unique(dat$Datasource_ID),
-                  Realm = realm)
-
+  #first get trends for each species
+  plt<- plts[i]
+  print(plt)
+  dat<- subset(mydata_taxasubset, Plot_ID == plt)
+  dat$cYear <- dat$Year - median(dat$Year)
+  dat$iYear <- dat$Year - min(dat$Year) + 1
   
-all.ests<- rbind(all.ests, est)
-
-
-#write a file during the loop to check where things are crashing
-write.table(data.frame(Plot_ID = plts[i]),
-          file = paste0("output_",realm,"_",Taxon1,"_",Taxon2,".txt"),
-          sep = "\t",
-          append = TRUE,
-          row.names = FALSE)
-
+  #make sure there is no NAs
+  dat <- subset(dat, !is.na(log_T1))
+  dat <- subset(dat, !is.na(log_T2))
+  
+  #brm trends - we might need to consider more complex models here
+  prior1 = c(set_prior("normal(0,5)", class = "b"))
+  
+  #get data for stan model (using "make_stancode")
+  mod1_data <- make_standata(log_T1 ~ cYear,data = dat, prior = prior1)
+  mod2_data <- make_standata(log_T2 ~ cYear,data = dat, prior = prior1)  
+  
+  #add on variables
+  mod1_data$meanResponse <- round(median(dat$log_T1), 1)
+  mod1_data$sdResponse <- max(round(mad(dat$log_T1), 1), 2.5)
+  mod2_data$meanResponse <- round(median(dat$log_T2), 1)
+  mod2_data$sdResponse <- max(round(mad(dat$log_T2), 1), 2.5)
+  
+  #specific file
+  modelfile <- paste(myfolder,"basic_trend.stan",sep="/")
+  
+  #run model
+  mod1 <- stan(modelfile, 
+               data = mod1_data, 
+               chains = 4,
+               iter = 5000)
+  
+  mod2 <- stan(modelfile, 
+               data = mod2_data, 
+               chains = 4,
+               iter = 5000)
+  
+  #get 1000 samples from the posterior of each trend estimate
+  fits1 <- as_draws_df(mod1)
+  samples1 <- sample(fits1$`b[1]`,1000)
+  fits2 <- as_draws_df(mod2)
+  samples2 <- sample(fits2$`b[1]`,1000)
+  
+  #put all into a data frame
+  est <- data.frame(task.id = task.id , 
+                    Taxon1 = Taxon1,
+                    Taxon2 = Taxon2,
+                    sample = 1:1000,
+                    trend_T1 = samples1,
+                    trend_T2 = samples2,
+                    Plot_ID = unique(dat$Plot_ID),
+                    Datasource_ID = unique(dat$Datasource_ID),
+                    Realm = realm)
+  
+  all.ests<- rbind(all.ests, est)
+  
+  
+  #write a file during the loop to check where things are crashing
+  write.table(data.frame(Plot_ID = plts[i]),
+              file = paste0(task.id,  "_output_" ,realm, "_" ,Taxon1, "_" ,Taxon2, ".txt"),
+              sep = "\t",
+              append = TRUE,
+              row.names = FALSE)
+  
 }
 
 #monte carlo simulation - get correlation coefficient for each sample
 cor_samples <- sapply(1:1000,function(i){
   
-                cor(all.ests$trend_T1[all.ests$sample==i],all.ests$trend_T2[all.ests$sample==i])
-  })
+  cor(all.ests$trend_T1[all.ests$sample==i],all.ests$trend_T2[all.ests$sample==i])
+})
 
 
 #summarise the correlation distribution for each comparison
-corSummary <- data.frame(meanCor = mean(cor_samples),
+corSummary <- data.frame(task.id = task.id,
+                         Taxon1 = Taxon1, 
+                         Taxon2 = Taxon2, 
+                         Realm = realm, 
+                         numberOfGoodDatasets = nGoodDatasets, 
+                         numberOfGoodPlots = nGoodPlots,
+                         meanCor = mean(cor_samples),
                          medianCor = median(cor_samples),
                          lower80Cor = quantile(cor_samples,0.10),
                          upper80Cor = quantile(cor_samples,0.90),
@@ -175,5 +196,7 @@ corSummary <- data.frame(meanCor = mean(cor_samples),
                          lower95Cor = quantile(cor_samples,0.025),
                          upper95Cor = quantile(cor_samples,0.975))
 
-saveRDS(corSummary,file=paste0("corSummary_",realm,"_",Taxon1,"_",Taxon2,".rds"))
+print(corSummary)
+saveRDS(corSummary,file=paste0("corSummary_",  task.id,   realm, "_" , Taxon1, "_" ,Taxon2, ".rds"))
+saveRDS(all.ests,file=paste0("slopeEstimates_", task.id,   realm, "_" , Taxon1,"_",Taxon2,".rds"))
 
