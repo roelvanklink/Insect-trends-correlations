@@ -1,6 +1,7 @@
 
 
 library(corrplot)
+library(ggcorrplot)
 library(ggplot2)
 library(reshape2)
 library(tidyverse)
@@ -14,11 +15,11 @@ studies<-read.csv(file = "C:\\Dropbox\\Insect Biomass Trends/csvs/studies 5.2.cs
 
 
 
-filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/", pattern="*corSum*", full.names=TRUE)
+filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/narrower prior test/", pattern="*corSum*", full.names=TRUE)
 ldf <- lapply(filenames, readRDS)
 cors<- do.call(rbind.data.frame, ldf)
 
-filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/", pattern="slope*", full.names=TRUE)
+filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/narrower prior test/", pattern="slope*", full.names=TRUE)
 ldf <- lapply(filenamesSlopes, readRDS)
 slopes<- do.call(rbind.data.frame, ldf)
 dim(slopes)
@@ -58,33 +59,131 @@ ggplot(subset(cors, numberOfGoodDatasets >4), aes(Taxon1, Taxon2, fill= numberOf
         legend.key=element_blank(), 
         legend.position="right")
 
+# using corrplot
+dataMatr<- dcast(cors , Taxon1 ~ Taxon2, value.var = "numberOfGoodDatasets")
+rownames(dataMatr) <- dataMatr$Taxon1
+dataMatr<- as.matrix(dataMatr[, -(1)])
+col3 = hcl.colors(10, "YlOrRd", rev = TRUE)
+corrplot(dataMatr,   col = col3,   is.corr = FALSE, tl.col = 'black', col.lim = c(5, 7), method = 'color', type = 'lower', diag = FALSE, na.label = "na")
+ggcorrplot(dataMatr,   col = col3,   is.corr = FALSE, tl.col = 'black', col.lim = c(5, 7), method = 'color', type = 'lower', diag = FALSE, na.label = "na")
+
 
 # is there a fundamental diffrence between fw and terr? 
 head(slopes)
-
-
-
+mnSlopes<- aggregate(.~task.id +Taxon1 +Taxon2  +Plot_ID + Datasource_ID+Realm, data = slopes,  FUN = "mean"); dim(mnSlopes)
+sdSlopes<- aggregate(.~ task.id +Taxon1 +Taxon2 +Plot_ID + Datasource_ID+Realm, data = slopes,  sd); dim(sdSlopes)
+ggplot(mnSlopes, aes(x = Realm, y = trend_T1)) + 
+  geom_point(position = "jitter")+
+  ylab ("mean")
+ggplot(sdSlopes, aes(x = Realm, y = trend_T1)) + 
+  geom_point(position = "jitter")+
+  ylab ("Standard deviation")
+boxplot(sdSlopes$trend_T1 ~ sdSlopes$Realm )
 
 
 
 #Fig 2a?  overall correlations #####
 
-table(slopes$trend_T1>0, slopes$trend_T2>0, slopes$Realm )
-plot(density(slopes$trend_T1))
+table(mnSlopes$trend_T1>0, mnSlopes$trend_T2>0, mnSlopes$Realm )
+plot(density(mnSlopes$trend_T1))
 hist(slopes$trend_T2) # Almost equal increaes and decreases, but parallel increases ad declines are more common 
 #plot(slopes$trend_T1~ slopes$trend_T2)
 
 ggplot(slopes, aes(x = trend_T1, y = trend_T2)) + 
-  geom_bin2d(bins=1000)+ 
+  geom_bin2d(bins=50)+ 
   xlab("") + ylab("")+
   geom_abline(intercept = 0 , slope = 1)+
   geom_hline(yintercept = 0)+ geom_vline(xintercept = 0)+
   facet_wrap(.~Realm, scales = "free")
 
+# only mean slopes
+ggplot(mnSlopes, aes(x = trend_T1, y = trend_T2)) + 
+  geom_bin2d(bins=50)+ 
+  xlab("") + ylab("")+
+  geom_abline(intercept = 0 , slope = 1)+
+  geom_smooth(method = "lm")+
+  geom_hline(yintercept = 0)+ geom_vline(xintercept = 0)+
+  facet_wrap(.~Realm, scales = "free")
 
-cor.test(subset(slopes, Realm == "Freshwater")$trend_T1, subset(slopes, Realm == "Freshwater")$trend_T2) # r = 0.233, p = <0.0001
-cor.test(subset(slopes, Realm == "Terrestrial")$trend_T1, subset(slopes, Realm == "Terrestrial")$trend_T2) # r = 0.233, p = <0.0001
+cor.test(subset(mnSlopes, Realm == "Freshwater")$trend_T1, subset(mnSlopes, Realm == "Freshwater")$trend_T2) # r = 0.233, p = <0.0001
+cor.test(subset(mnSlopes, Realm == "Terrestrial")$trend_T1, subset(mnSlopes, Realm == "Terrestrial")$trend_T2) # r = 0.09, p = <0.0001
+
+sma(trend_T1 ~trend_T2, data = mnSlopes)
 # not sure what this tells us. 
+# but this is almost a necessity! because negative covariance can only occur in maximum half of all comparisons
+
+# What about comparisons where at least one of the two trends is significant? 
+# expectation 
+
+sigSlopes<-  slopes %>% 
+  group_by(task.id, Taxon1, Taxon2, Plot_ID, Datasource_ID, Realm) %>%
+  summarise(
+    meanSlpT1 = mean(trend_T1),
+    medianSlpT1 = median(trend_T1),
+    lower80SlpT1 = quantile(trend_T1,0.10),
+    upper80SlpT1 = quantile(trend_T1,0.90),
+    lower90SlpT1 = quantile(trend_T1,0.05),
+    upper90SlpT1 = quantile(trend_T1,0.95),
+    lower95SlpT1 = quantile(trend_T1,0.025),
+    upper95SlpT1 = quantile(trend_T1,0.975),
+    
+    meanSlpT2 = mean(trend_T2),
+    medianSlpT2 = median(trend_T2),
+    lower80SlpT2 = quantile(trend_T2,0.10),
+    upper80SlpT2 = quantile(trend_T2,0.90), 
+    lower90SlpT2 = quantile(trend_T2,0.05),
+    upper90SlpT2 = quantile(trend_T2,0.95),
+    lower95SlpT2 = quantile(trend_T2,0.025),
+    upper95SlpT2 = quantile(trend_T2,0.975))
+
+mnSlopes<- list(
+  allSlopes = sigSlopes, 
+sigSlopes80= subset(sigSlopes,  lower80SlpT1>0 | upper80SlpT1 <0 | lower80SlpT2>0 | upper80SlpT2 <0),
+sigSlopes90= subset(sigSlopes,  lower90SlpT1>0 | upper90SlpT1 <0 | lower90SlpT2>0 | upper90SlpT2 <0),
+sigSlopes95= subset(sigSlopes,  lower95SlpT1>0 | upper95SlpT1 <0 | lower95SlpT2>0 | upper95SlpT2 <0),
+
+sigSlopes80both= subset(sigSlopes,  (lower80SlpT1>0 | upper80SlpT1 <0) & (lower80SlpT2>0 | upper80SlpT2 <0)) ,
+sigSlopes90both= subset(sigSlopes,  (lower90SlpT1>0 | upper90SlpT1 <0) & (lower90SlpT2>0 | upper90SlpT2 <0)) ,
+sigSlopes95both= subset(sigSlopes,  (lower95SlpT1>0 | upper95SlpT1 <0) & (lower95SlpT2>0 | upper95SlpT2 <0)) 
+)
+
+lapply(mnSlopes, function(x) { 
+ggplot( x  , 
+       aes(x = meanSlpT1, y = meanSlpT2)) + 
+  geom_bin2d(bins=50)+ 
+  xlab("") + ylab("")+
+  geom_abline(intercept = 0 , slope = 1)+
+  geom_hline(yintercept = 0)+ geom_vline(xintercept = 0)+
+  facet_wrap(.~Realm, scales = "free")+ 
+  ggtitle (deparse(substitute(x)))
+  } )
+
+
+ldf<- lapply(mnSlopes, function(x) {cor(x$meanSlpT1, x$meanSlpT2)})
+do.call(rbind, ldf)
+
+frequencies<- NULL
+for (i in 1: length(mnSlopes)){
+df1<- mnSlopes[[i]]
+name<- names(mnSlopes)[i]
+test<-as.data.frame(table(df1$meanSlpT1 >0, df1$meanSlpT2>0, df1$Realm ))# / (table(sigSlopes$Realm) )
+test$prop <- test$Freq/rep(table(df1$Realm), each = 4)
+test$dfName<- name
+frequencies<- rbind(frequencies, test)
+}
+
+# make df of wrongly allocated directions under assumption of parity  
+falseFreq<- aggregate (.~ dfName + Var3, data = subset(frequencies, Var1 != Var2  ), sum)
+ggplot(falseFreq, aes (x = dfName, y = prop,   color = Var3))+ 
+  geom_point()+
+  coord_flip()+
+  ylab ("proportion opposite direction")
+
+
+
+#What about 
+
+
 
 
 
