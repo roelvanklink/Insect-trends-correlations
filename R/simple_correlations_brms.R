@@ -7,8 +7,16 @@ library(posterior)
 #choose HPC folder
 myfolder <- "/data/idiv_ess/Roel" #Diana's HPC
 myfolder <- "/data/idiv_chase/vanKlink"
+
 #read in data
 myData<- readRDS(paste(myfolder,"Fulldata allorders.rds",sep="/"))
+myData$Period <- as.numeric(myData$Period)
+
+mySummary <- myData %>%
+                group_by(Plot_ID) %>%
+                summarise(nuPeriod = length(unique(Period)),
+                          nuYears = length(unique(Year)))
+
 
 #reorganise data wide so each taxa is on a column
 mydata_wide <- myData %>%
@@ -118,20 +126,34 @@ for(i in 1:length(plts)){
   dat <- subset(dat, !is.na(log_T2))
   
   #brm trends - we might need to consider more complex models here
-  prior1 = c(set_prior("normal(0,5)", class = "b"))
+  prior1 = c(set_prior("normal(0,1)", class = "b"))
   
-  #get data for stan model (using "make_stancode")
-  mod1_data <- make_standata(log_T1 ~ cYear,data = dat, prior = prior1)
-  mod2_data <- make_standata(log_T2 ~ cYear,data = dat, prior = prior1)  
+  #decide on model to run for the plot
+  pltSummary <- dat %>%
+                  group_by(Plot_ID) %>%
+                  summarise(nuPeriod = length(unique(Period)),
+                            nuYears = length(unique(Year)))
   
-  #add on variables
+  if(pltSummary$nuPeriod <= 3){
+  
+    #get data for stan model (made using "make_stancode")
+    mod1_data <- make_standata(log_T1 ~ cYear,data = dat, prior = prior1)
+    mod2_data <- make_standata(log_T2 ~ cYear,data = dat, prior = prior1) 
+    modelfile <- paste(myfolder,"basic_trend.stan",sep="/")#(made using "make_stancode")
+  
+  }if(pltSummary$nuPeriod > 3){
+    #get data for stan model (made using "make_stancode")
+    mod1_data <- make_standata(log_T1 ~ cYear + (1|Period), data = dat, prior = prior1)
+    mod2_data <- make_standata(log_T2 ~ cYear + (1|Period), data = dat, prior = prior1) 
+    modelfile <- paste(myfolder,"basic_period_trend.stan",sep="/")#(made using "make_stancode")
+  
+  }
+  
+  #add on men and sd for intercept priors
   mod1_data$meanResponse <- round(median(dat$log_T1), 1)
   mod1_data$sdResponse <- max(round(mad(dat$log_T1), 1), 2.5)
   mod2_data$meanResponse <- round(median(dat$log_T2), 1)
   mod2_data$sdResponse <- max(round(mad(dat$log_T2), 1), 2.5)
-  
-  #specific file
-  modelfile <- paste(myfolder,"basic_trend.stan",sep="/")
   
   #run model
   mod1 <- stan(modelfile, 
@@ -180,12 +202,21 @@ cor_samples <- sapply(1:1000,function(i){
 })
 
 
+#put the 1000 values into a data frame
+corSummary <- data.frame(task.id = task.id,
+                         Taxon1 = Taxon1,
+                         Taxon2 = Taxon2,
+                         Realm = realm,
+                         cor = cor_samples)
+
+saveRDS(cors,file=paste0("cors_",  task.id,   realm, "_" , Taxon1, "_" ,Taxon2, ".rds"))
+
 #summarise the correlation distribution for each comparison
 corSummary <- data.frame(task.id = task.id,
-                         Taxon1 = Taxon1, 
-                         Taxon2 = Taxon2, 
-                         Realm = realm, 
-                         numberOfGoodDatasets = nGoodDatasets, 
+                         Taxon1 = Taxon1,
+                         Taxon2 = Taxon2,
+                         Realm = realm,
+                         numberOfGoodDatasets = nGoodDatasets,
                          numberOfGoodPlots = nGoodPlots,
                          meanCor = mean(cor_samples),
                          medianCor = median(cor_samples),
@@ -195,8 +226,9 @@ corSummary <- data.frame(task.id = task.id,
                          upper90Cor = quantile(cor_samples,0.95),
                          lower95Cor = quantile(cor_samples,0.025),
                          upper95Cor = quantile(cor_samples,0.975))
-
 print(corSummary)
 saveRDS(corSummary,file=paste0("corSummary_",  task.id,   realm, "_" , Taxon1, "_" ,Taxon2, ".rds"))
+
+#save trend estimates
 saveRDS(all.ests,file=paste0("slopeEstimates_", task.id,   realm, "_" , Taxon1,"_",Taxon2,".rds"))
 
