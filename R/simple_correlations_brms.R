@@ -203,7 +203,7 @@ cor_samples <- sapply(1:1000,function(i){
 
 
 #put the 1000 values into a data frame
-corSummary <- data.frame(task.id = task.id,
+cors <- data.frame(task.id = task.id,
                          Taxon1 = Taxon1,
                          Taxon2 = Taxon2,
                          Realm = realm,
