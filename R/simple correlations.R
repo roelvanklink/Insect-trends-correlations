@@ -5,6 +5,7 @@ library(lme4)
 library(smatr)
 setwd("E:\\Dropbox\\Insect Biomass Trends/csvs/taxon correlations/")
 setwd("C:\\Dropbox\\Insect Biomass Trends/csvs/taxon correlations/")
+myfolder<- "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/stan_models"
 studies<-read.csv(file = "E:\\Dropbox\\Insect Biomass Trends/csvs/studies 5.2.csv", header = T); dim(studies)
 
 
@@ -31,13 +32,13 @@ setdiff(unique(myData$Datasource_name), unique(myDataG$Datasource_name)) # no di
 
 
 
-good_comparisons_order<-  read.csv( "g:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs.csv")
+good_comparisons_order<-  read.csv( "d:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs.csv")
 
-ok_comparisons_order<-    read.csv("G:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_less_good.csv")
+ok_comparisons_order<-    read.csv("d:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_less_good.csv")
 comparisons <- rbind(good_comparisons_order, ok_comparisons_order)
 
-good_comparisons_group <- read.csv( "G:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_groups.csv")
-ok_comparisons_group <-   read.csv( "G:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_groups_less_good.csv")
+good_comparisons_group <- read.csv( "d:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_groups.csv")
+ok_comparisons_group <-   read.csv( "d:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_groups_less_good.csv")
 comparisons_group <- rbind(good_comparisons_group, ok_comparisons_group)
 
 #data check: 
@@ -113,7 +114,7 @@ mydata_taxasubset <- mydata_taxasubset[, c("Plot_ID", "Date",   "Datasource_ID",
 # do we have enough data in each plot to actually compare these taxa? 
 # threshold: at least present in half of all years 
 
-mydataAggSubset<- subset(myData, commonGroup == Taxon1& !is.na(Number)  | commonGroup == Taxon2 & !is.na(Number)  )
+mydataAggSubset<- subset(myData, Order == Taxon1& !is.na(Number)  | Order == Taxon2 & !is.na(Number)  )
 mydataAggSubset<- subset(mydataAggSubset, Realm == realm)
 #pltQltyCheck<- dcast(mydataAggSubset, Realm + Plot_ID + Year ~ Order, value.var = "Number",  fill = -999 , sum)
 
@@ -121,7 +122,7 @@ mydataAggSubset<- subset(mydataAggSubset, Realm == realm)
 
 metadata_per_group_per_plot<-  mydataAggSubset %>% 
   mutate(sample = paste(Year, Period, Date)) %>%
-  group_by(  Plot_ID, commonGroup) %>%
+  group_by(  Plot_ID, Order) %>%
   summarise(
     Datasource_ID = unique(Datasource_ID), 
     NumberOfIndPerGroup = sum(Number, na.rm = T ),
@@ -132,7 +133,7 @@ metadata_per_group_per_plot<-  mydataAggSubset %>%
                meanOccurence    = NumberOfOccPerGroup / NumberOfSamples )
 
 
-widemetadata<-   dcast(metadata_per_group_per_plot, Datasource_ID + Plot_ID ~ commonGroup, value.var = "meanOccurence" ) 
+widemetadata<-   dcast(metadata_per_group_per_plot, Datasource_ID + Plot_ID ~ Order, value.var = "meanOccurence" ) 
 
 GoodPlots<- subset(widemetadata, widemetadata[3]>0.5 & widemetadata[4]> 0.5 & !is.na(widemetadata[3]) & !is.na(widemetadata[4]))
 
@@ -164,7 +165,8 @@ plts<- unique(mydata_taxasubset$Plot_ID)
 all.ests<- NULL
 
       for(i in 1:length(plts)){
-      dat<- subset(mydata_taxasubset, Plot_ID == plts[i])
+        plt<- plts[i]
+      dat<- subset(mydata_taxasubset, Plot_ID == plt)
       
       
       
