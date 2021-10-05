@@ -10,7 +10,6 @@ myfolder <- "/data/idiv_chase/vanKlink"
 
 #read in data
 myData<- readRDS(paste(myfolder,"Fulldata allorders.rds",sep="/"))
-myData$Period <- as.numeric(myData$Period)
 
 mySummary <- myData %>%
                 group_by(Plot_ID) %>%
@@ -120,6 +119,7 @@ for(i in 1:length(plts)){
   dat<- subset(mydata_taxasubset, Plot_ID == plt)
   dat$cYear <- dat$Year - median(dat$Year)
   dat$iYear <- dat$Year - min(dat$Year) + 1
+  dat$Period <- as.numeric(as.factor(dat$Period))
   
   #make sure there is no NAs
   dat <- subset(dat, !is.na(log_T1))
@@ -141,7 +141,10 @@ for(i in 1:length(plts)){
     mod2_data <- make_standata(log_T2 ~ cYear,data = dat, prior = prior1) 
     modelfile <- paste(myfolder,"basic_trend.stan",sep="/")#(made using "make_stancode")
   
-  }if(pltSummary$nuPeriod > 3){
+  }
+  
+  
+  if(pltSummary$nuPeriod > 3){
     #get data for stan model (made using "make_stancode")
     mod1_data <- make_standata(log_T1 ~ cYear + (1|Period), data = dat, prior = prior1)
     mod2_data <- make_standata(log_T2 ~ cYear + (1|Period), data = dat, prior = prior1) 
