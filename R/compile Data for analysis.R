@@ -71,13 +71,13 @@ taxa<- taxa[, 1:14]
   
 # assign common group names     
 taxa$commonGroup<- NA
-taxa$commonGroup[taxa$Family== "Carabidae"] <-  "Ground beetles"
+taxa$commonGroup[taxa$Family== "Carabidae"] <-  "Carabidae"
 Weevils <- c("Brentidae", "Apionidae", "Anthribidae", "Attelabidae", "Curculionidae" )
-taxa$commonGroup[taxa$Family %in% Weevils] <- "Weevils"
-taxa$commonGroup[taxa$Family== "Chrysomelidae"] <-  "Leaf beetles"
-taxa$commonGroup[taxa$Family== "Staphylinidae"] <-   "Rove beetles"
-taxa$commonGroup[taxa$Family== "Syrphidae"] <- "Hoverflies"
-taxa$commonGroup[taxa$Order== "Neuroptera"] <- "Lacewings"
+taxa$commonGroup[taxa$Family %in% Weevils] <- "Curculionoidea"
+taxa$commonGroup[taxa$Family== "Chrysomelidae"] <-  "Chrysomelidae"
+taxa$commonGroup[taxa$Family== "Staphylinidae"] <-   "Staphylinidae"
+taxa$commonGroup[taxa$Family== "Syrphidae"] <- "Syrphidae"
+taxa$commonGroup[taxa$Order== "Neuroptera"] <- "Neuroptera"
 
                                           
 bees<- c("Andrenidae", "Apidae", "Colletidae", "Halictidae", "Megachilidae", "Melittidae", "Stenotritidae" )
@@ -86,10 +86,10 @@ taxa$commonGroup[taxa$Family %in% bees] <- "Bees"
 butterflies <- c("Nymphalidae", "Hesperiidae",  "Lycaenidae",  "Pieridae", "Papilionidae", "Riodinidae")
 taxa$commonGroup[taxa$Family %in% butterflies] <- "Butterflies"
 
-taxa$commonGroup[taxa$Family== "Coccinellidae"] <-  "Lady beetles"
-taxa$commonGroup[taxa$Subclass== "Collembola"] <- "Springtails"
-taxa$commonGroup[taxa$Order== "Araneae"] <- "Spiders"
-taxa$commonGroup[taxa$Order== "Orthoptera"] <- "Orthopterans"
+taxa$commonGroup[taxa$Family== "Coccinellidae"] <-  "Coccinellidae"
+taxa$commonGroup[taxa$Subclass== "Collembola"] <- "Collembola"
+taxa$commonGroup[taxa$Order== "Araneae"] <- "Araneae"
+taxa$commonGroup[taxa$Order== "Orthoptera"] <- "Orthoptera"
 
 hymFam<- sort(unique(taxa$Family[taxa$Order == "Hymenoptera"]))
 parasitoids <- hymFam[! hymFam %in% c(bees, "Formicidae",  "Vespidae", "Agaonidae", "Argidae", "Cynipidae", "Cynipoidea", "Figitidae" , 
@@ -104,32 +104,30 @@ taxa$commonGroup[taxa$Family %in% moths] <- "Moths"
 colFam<- sort(unique(taxa$Family[taxa$Order == "Coleoptera"]))
 
 
-taxa$commonGroup[taxa$Suborder== "Heteroptera"] <- "True bugs"
-taxa$commonGroup[taxa$Suborder== "Auchenorrhyncha"] <- "Plant- and leafhoppers" 
+taxa$commonGroup[taxa$Suborder== "Heteroptera"] <- "Heteroptera"
+taxa$commonGroup[taxa$Suborder== "Auchenorrhyncha"] <- "Auchenorrhyncha" 
 Dungbeetles <- c("Geotrupidae", "Aphodiinae" , "Scarabaeinae")
 taxa$commonGroup[taxa$Family %in% Dungbeetles | taxa$Subfamily %in% Dungbeetles] <- "Dungbeetles"
 
-taxa$commonGroup[taxa$Family== "Formicidae"] <-  "Ants"
+taxa$commonGroup[taxa$Family== "Formicidae"] <-  "Formicidae"
 
-taxa$commonGroup[taxa$Order== "Odonata"] <- "Dragonflies"
-taxa$commonGroup[taxa$Order== "Trichoptera"] <- "Caddisflies"
-taxa$commonGroup[taxa$Order== "Ephemeroptera"] <- "Mayflies"
-taxa$commonGroup[taxa$Order== "Plecoptera"] <- "Stoneflies"
-taxa$commonGroup[taxa$Family== "Chironomidae"] <- "Midges"
+taxa$commonGroup[taxa$Order== "Odonata"] <- "Odonata"
+taxa$commonGroup[taxa$Order== "Trichoptera"] <- "Trichoptera"
+taxa$commonGroup[taxa$Order== "Ephemeroptera"] <- "Ephemeroptera"
+taxa$commonGroup[taxa$Order== "Plecoptera"] <- "Plecoptera"
+taxa$commonGroup[taxa$Family== "Chironomidae"] <- "Chironomidae"
 waterbeetles<- c(  "Dytiscidae",   "Gyrinidae" , "Haliplidae" , "Noteridae",   "Amphizoidae",
                    "Hygrobiidae", "Meruidae", "Hydroscaphidae" , "Hydrophilidae", "Lutrochidae", 
   "Dryopidae",  "Elmidae","Eulichadidae", "Heteroceridae", "Limnichidae", "Psephenidae", 
   "Ptilodactylidae", "Torridincolidae", "Sphaeriusidae")
-taxa$commonGroup[taxa$Family %in% waterbeetles] <- "Water beetles"
-taxa$commonGroup[taxa$Family== " "] <- "Water beetles"
-taxa$commonGroup[taxa$Family== "Culicidae"] <- "Mosquitoes"
+taxa$commonGroup[taxa$Family %in% waterbeetles] <- "Coleoptera"
+taxa$commonGroup[taxa$Family== " "] <- "coleoptera"
+taxa$commonGroup[taxa$Family== "Culicidae"] <- "Culicidae"
 taxa$commonGroup[taxa$Family== "Simuliidae"] <- "Simuliidae"
 waterbugs <- c("Belostomatidae",  "Nepidae", "Corixidae", "Naucoridae", "Ochteridae", "Gelastocoridae", "Aphelocheiridae", "Notonectidae", "Pleidae", "Helotrephidae")
-taxa$commonGroup[taxa$Family %in%  waterbugs] <- "Water bugs"
+taxa$commonGroup[taxa$Family %in%  waterbugs] <- "Hemiptera"
 
-waterbugs <- c("Belostomatidae",  "Nepidae", "Corixidae", "Naucoridae", "Ochteridae", "Gelastocoridae", "Aphelocheiridae", "Notonectidae", "Pleidae", "Helotrephidae")
-taxa$commonGroup[taxa$Family %in%  waterbugs] <- "Water bugs"
-taxa$commonGroup[taxa$Subclass== "Acari"] <- "Mites"
+taxa$commonGroup[taxa$Subclass== "Acari"] <- "Acari"
 
 #check waht's not assigned
 unique(subset(taxa[, c("Class" , "Subclass", "Order", "Suborder", "Family",  "commonGroup")], is.na(commonGroup) & Class == "Arachnida"))  
@@ -221,7 +219,7 @@ write.csv(taxa, file = "C:\\Dropbox\\Insect Biomass Trends/csvs/taxa5.2.csv", ro
 
     # old versions: 
   AZnw<- read.csv(file = "C:\\Dropbox\\Insect Biomass Trends\\csvs/LTER Arizona Pitfalls per date2021.csv", header = T)
-  AZnw$Taxon[is.na(AZOld$Taxon)]<-"NONE"
+  AZnw$Taxon[is.na(AZnw$Taxon)]<-"NONE"
   AZ2<- read.csv(file = "C:/Dropbox/Insect Biomass Trends/csvs/Old data Science paper/sycamore creek formatted.csv", header = T)
   Luquillo<- read.csv(file = "C:/Dropbox/Insect Biomass Trends/csvs/Old data Science paper/LTER Luquillo all canopy arthropods.csv", header = T); Luquillo$Unit <- "abundance"
   levels(Luquillo$Taxon)[levels(Luquillo$Taxon) == "MELA"]<-"MELA1"      # is duplicate name in taxon list
@@ -578,7 +576,7 @@ write.csv(ok_comparisons_order, "D:/work/2017 iDiv/2018 insect biomass/Insect-tr
 
 
 
-saveRDS(allDataOrdzero, file = "./taxon correlations/Fulldata allorders.rds")
+saveRDS(allDataOrdzero, file = "C:\\Dropbox\\Insect Biomass Trends/csvs/Fulldata allorders.rds")
 
 
 
@@ -717,7 +715,7 @@ allDataCommonzero<- anti_join(allDataCommonzero, exclude[, 1:3]); dim(allDataCom
 
 
 # check other rare species
-check<- subset(metadata_per_order_per_plot,  floor(NumberOfIndPerOrder) ==  NumberOfIndPerOrder &    meanOccPerSample >0.5 & meanOccPerSample <1)
+check<- subset(metadata_per_group_per_plot,  floor(NumberOfIndPerGroup) ==  NumberOfIndPerGroup &    meanOccPerSample >0.5 & meanOccPerSample <1)
 print(check, n = 100)
 # this seems fine to me: these are taxa that were present in most years and can be analysed 
 
@@ -807,8 +805,19 @@ ok_comparisons_group$modelName<- paste0(substr(ok_comparisons_group$Taxon1,1,4),
                                           substr(ok_comparisons_group$Taxon2, 1,4), "_", 
                                           substr(ok_comparisons_group$Realm, 1,1))
 
+head(good_comparisons_group)
+good_comparisons_group[good_comparisons_group$modelName %in% good_comparisons_order$modelName ,]
+
+good_comparisons_group<- good_comparisons_group[!good_comparisons_group$modelName %in% good_comparisons_order$modelName ,]
+
+ok_comparisons_group[ok_comparisons_group$modelName %in% c(ok_comparisons_order$modelName, good_comparisons_order$modelName) ,]
+
+ok_comparisons_group<- ok_comparisons_group[!ok_comparisons_group$modelName %in% c(ok_comparisons_order$modelName, good_comparisons_order$modelName),]
+
+
+
 write.csv(good_comparisons_group, "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_groups.csv")
-write.csv(ok_comparisons_group, "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_groups_less_good.csv")
+write.csv(ok_comparisons_group,   "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R/submit scripts and jobs/comparison_jobs_groups_less_good.csv")
 
 
 
@@ -833,7 +842,7 @@ outlierCheck<-  allDataCommonzero %>%
 print(subset(outlierCheck, zeroes !=0 & lower2sd >0), n = Inf )
 # excessive outliers (>1) in Alaska  are fixed. Only a few leftover in Sweden and new zealand 
 
-saveRDS(allDataCommonzero, file = "./taxon correlations/Fulldata allgroups.rds")
+saveRDS(allDataCommonzero, file = "C:/Dropbox/Insect Biomass Trends/csvs/taxon correlations/Fulldata allgroups.rds")
 
 
 
@@ -845,131 +854,4 @@ saveRDS(allDataCommonzero, file = "./taxon correlations/Fulldata allgroups.rds")
 
 
 
-
-
-
-
-# trash  ####################################
-
-
-  
-
-#what about: Owen bees? 
-  # Kellogg lampyridae and Neuroptera
-  Kellogg<- read.csv(file = "Kellogg 2020.csv", header = T)
-  
-  
-    
-    # can use as is, but plot IDs need to be changed
-  ECNbuttStd<- read.csv( file = "ECN butterflies standardized 20210715.csv")
-  ECNmothsStd<- read.csv(file = "ECN moths standardized 20210718.csv")
-  ECNgbStd<- read.csv( file = "ECN ground beetles standardized 20210718.csv")
-# problematic because th eplots are not necesarily at the same location. also, there are sometimes multiple plots per site
-  
-  
-  
-  
-  
-  
-# loop for comparative models to run 
-  
-  
-  Taxon1 = "Ephemeroptera"
-  Taxon2 = "Megaloptera"
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-
-databaseOrderComp <- readRDS( "database selected for Order comparisons.rds") 
-  dim(databaseOrderComp)
-names(databaseOrderComp)[names(databaseOrderComp) == "Unit"]<-"Unit_in_data"
-
-
-dat<- merge(databaseOrderComp, taxa, by = "Taxon")
-dat<- merge(dat, samples, by = "Sample_ID")
-
-dim(dat)
-
-setdiff(sort(unique(samplesOrderComp$Datasource_nameREDUNDANT)), sort(unique(dat$Datasource_name)))
-
-
-dat<- subset(dat, Unit_in_data != "biomass")
-length(unique(dat$Datasource_name))
-
-
-
-
-# merge all insect counts at order level
-test<- dcast(dat, Datasource_ID+Unit_in_data+Plot_ID+Year+ Plot_name+ Phylum + Class + Subclass +Order ~ "Number", value.var = "Number" , sum)
-dim(test)
-table(test$Datasource_ID, test$Order)
-
-
-
-
-
-
-
-
-
-
-
-
- # here 
-
-
-
-
-
-
-
-
-
-
-
-# check which comparisons make sense in each plot regarding data availability per plot 
-
-# TO DO LATER 
-metadata_per_family_per_plot<-  allDataFamzero %>% 
-  mutate(sample = paste(Year, Period, Date)) %>%
-  group_by(  Plot_ID, Family) %>%
-  summarise(
-    Datasource_ID = unique(Datasource_ID), 
-    Datasource_name = unique(Datasource_name.x), 
-    NumberOfIndPerFamily = sum(Number, na.rm = T ),
-    NumberOfOccPerFamily = sum(Number != 0, na.rm = T ),
-    NumberOfYears = length(unique(Year)),
-    NumberOfSamples = length(unique(sample))
-  )
-
-
-
-
-
-
-
-
-
-
-
-saveRDS(test, "Toy data taxon comparisons 20210806.rds")
 
