@@ -84,14 +84,15 @@ mydata_wide <- myDataG %>%
 
 taxonindex<- comparisons
 taxonindex <- comparisons_group
+taxonindex <- as.data.frame(unique(tetPlots[, c(1,2,5)]))
 all.relations<- NULL
 all.all.ests<- NULL
 
 
 for (k in 1:nrow(taxonindex)) { # c(12,23,37,43)
 
-Taxon1<- taxonindex[k, "Taxon1"]; print(Taxon1)
-Taxon2<- taxonindex[k, "Taxon2"]; print(Taxon2)
+Txn1<- taxonindex[k, "Taxon1"]; print(Txn1)
+Txn2<- taxonindex[k, "Taxon2"]; print(Txn2)
 realm <- taxonindex[k, "Realm"]; print(realm)
 
 #realm<-  "Terrestrial"#comparisons[i, "Realm"]; print(realm)
@@ -99,22 +100,22 @@ realm <- taxonindex[k, "Realm"]; print(realm)
 #Taxon2<- "Orthoptera"
 
 # which columns do we use?  
-indexTaxon1 <-which(names(mydata_wide) == Taxon1)
-indexTaxon2 <-which(names(mydata_wide) == Taxon2)
+indexTaxon1 <-which(names(mydata_wide) == Txn1)
+indexTaxon2 <-which(names(mydata_wide) == Txn2)
 
 mydata_taxasubset <- subset(mydata_wide, Realm == realm &  !is.na(mydata_wide[indexTaxon1]) & !is.na(mydata_wide[indexTaxon2]))
 mydata_taxasubset$log_T1 <- log10(pull(mydata_taxasubset[indexTaxon1])+1  )
 mydata_taxasubset$log_T2 <- log10(pull(mydata_taxasubset[indexTaxon2])+1)   
 
 mydata_taxasubset <- mydata_taxasubset[, c("Plot_ID", "Date",   "Datasource_ID",  "Year", "Period", "Location", 
-                                           "Datasource_name", "Realm" , "Flag_taxonomy" , Taxon1, Taxon2, "log_T1", "log_T2")]
+                                           "Datasource_name", "Realm" , "Flag_taxonomy" , Txn1, Txn2, "log_T1", "log_T2")]
 
 
 
 # do we have enough data in each plot to actually compare these taxa? 
 # threshold: at least present in half of all years 
 
-mydataAggSubset<- subset(myData, Order == Taxon1& !is.na(Number)  | Order == Taxon2 & !is.na(Number)  )
+mydataAggSubset<- subset(myData, Order == Txn1& !is.na(Number)  | Order == Txn2 & !is.na(Number)  )
 mydataAggSubset<- subset(mydataAggSubset, Realm == realm)
 #pltQltyCheck<- dcast(mydataAggSubset, Realm + Plot_ID + Year ~ Order, value.var = "Number",  fill = -999 , sum)
 
@@ -158,7 +159,8 @@ mydata_taxasubset<-  mydata_taxasubset[mydata_taxasubset$Plot_ID %in% GoodPlots$
 
 
 # at plot level 
-plts<- unique(mydata_taxasubset$Plot_ID)
+plts<- unique(mydata_taxasubset$Plot_ID) #unique(mydata_taxasubset$Plot_ID)[unique(mydata_taxasubset$Plot_ID) %in% 
+                                        #   subset(tetPlots, Taxon1 == Txn1 & Taxon2 == Txn2 & Realm ==realm)$Plot_ID] 
 
 
 
@@ -168,16 +170,28 @@ all.ests<- NULL
         plt<- plts[i]
       dat<- subset(mydata_taxasubset, Plot_ID == plt)
       
+      datlong<- melt(dat, id.vars = "Year",
+                     measure.vars = c( "log_T1", "log_T2" ),
+                     variable.name = "Taxon", value.name = "log(Number+1)")
       
-      
-      
+       
       if(length(unique(dat$Period))==1){
         
         mod1<- summary(lm(log_T1 ~ Year , data = dat  )) 
         mod2<- summary(lm(log_T2 ~ Year, data = dat  ))    
         
-       est<- data.frame(Taxon1 = Taxon1,
-                       Taxon2 = Taxon2,
+        
+##        print(
+#          ggplot(datlong, aes(x=Year, y = `log(Number+1)`, color = Taxon ))+
+#            geom_point()+
+#            scale_color_manual(values=c("blue", "red"))+
+#            geom_smooth(method = 'lm', se = F)+
+#            ggtitle (plt)+
+#            theme_classic()
+#        )
+        
+       est<- data.frame(Taxon1 = Txn1,
+                       Taxon2 = Txn2,
                        Plot = plts[i],
                        glmm = FALSE,
                        NumberOfYears = length(unique(dat$Year)),
@@ -197,8 +211,17 @@ all.ests<- NULL
       mod1x<- summary(lmer(log_T1 ~ Year + (1|Period), data = dat  ))  
       mod2x<- summary(lmer(log_T2 ~ Year + (1|Period), data = dat  ))  
       
-      est<- data.frame(Taxon1 = Taxon1,
-                       Taxon2 = Taxon2,
+#      print(
+#      ggplot(datlong, aes(x=Year, y = `log(Number+1)`, color = Taxon ))+
+#        geom_point()+
+#        scale_color_manual(values=c("blue", "red"))+
+#        geom_smooth(method = 'lm')+
+#        ggtitle (plt)+
+#        theme_classic()
+#      )
+      
+      est<- data.frame(Taxon1 = Txn1,
+                       Taxon2 = Txn2,
                        Plot = plts[i],
                        glmm = TRUE, 
                        NumberOfYears = length(unique(dat$Year)),
@@ -222,6 +245,24 @@ all.ests$T1lower<- all.ests$estimateT1 - all.ests$stdErrorT1
 all.ests$T2upper<- all.ests$estimateT2 + all.ests$stdErrorT2
 all.ests$T2lower<- all.ests$estimateT2 - all.ests$stdErrorT2
 
+cor(all.ests$estimateT1, all.ests$estimateT2)
+maxreg<- sma(all.ests$estimateT1~ all.ests$estimateT2)
+maxreg<- as.data.frame(maxreg$coef) 
+maxreg$coef.SMA.[2]
+ggplot(all.ests, aes(x = estimateT1, y = estimateT2))+
+  geom_point()+
+  geom_hline (yintercept = 0)+
+  geom_vline(xintercept = 0)+
+  geom_abline(slope = maxreg$coef.SMA.[2], intercept = maxreg$coef.SMA.[1], color = 'red', linetype = 'dashed', size = 1)+
+  xlab("Slope estimate Taxon 1")+
+  ylab("Slope estimate Taxon 2") +
+  annotate("text", x=0.25, y = -0.15 , label = paste("r =",  round(cor(all.ests$estimateT1, all.ests$estimateT2),3)), size = 5)+
+  theme_classic()
+
+
+
+
+
 all.all.ests<- rbind(all.all.ests, all.ests)
 
 # put in major axis regression here. 
@@ -232,8 +273,8 @@ ct<- cor.test(all.ests$estimateT1, all.ests$estimateT2)
 
 relations<- data.frame(
   ModelNr = i,
-  Taxon1 = Taxon1, 
-  Taxon2 = Taxon2, 
+  Taxon1 = Txn1, 
+  Taxon2 = Txn2, 
   Realm = realm, 
   estTaxon1 = est$estimateT1,
   estTaxon2 = est$estimateT2,  
@@ -267,7 +308,7 @@ ggplot(all.ests, aes(x = estimateT1, y = estimateT2, color = as.factor(Datasourc
   geom_errorbarh(aes(xmin = T1lower, xmax = T1upper))+ 
   geom_smooth(method=lm, na.rm = TRUE, fullrange= TRUE,
               aes(group=1),colour="black")+
-  ylab(paste("Trend", Taxon2))+ xlab(paste("Trend" ,Taxon1))+
+  ylab(paste("Trend", Txn2))+ xlab(paste("Trend" ,Txn1))+
   geom_abline(intercept = MA$coef[[1]][1,1], slope = MA$coef[[1]][2,1], col = "red", size = 2)+
   ggtitle ( taxonindex[k, "modelName"])#+
   #facet_wrap(.~Datasource_ID)
