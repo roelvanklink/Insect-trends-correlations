@@ -1,3 +1,4 @@
+rm(list=ls()) 
 
 
 library(corrplot)
@@ -15,23 +16,28 @@ studies<-read.csv(file = "C:\\Dropbox\\Insect Biomass Trends/csvs/studies 5.2.cs
 
 
 
-filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/", pattern="*corSum*", full.names=TRUE)
+filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/prior sd1/", pattern="*corSum*", full.names=TRUE)
 ldf <- lapply(filenames, readRDS)
 cors<- do.call(rbind.data.frame, ldf); dim(cors)
-cors<- subset(cors, numberOfGoodDatasets >4); dim(cors) # exclude crappy data
+cors<- subset(cors, numberOfGoodDatasets >4); dim(cors) # exclude crappy data  57 -> 46
 
-filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/", pattern="slope*", full.names=TRUE)
+filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/prior sd1/", pattern="slope*", full.names=TRUE)
 ldf <- lapply(filenamesSlopes, readRDS)
 slopes<- do.call(rbind.data.frame, ldf)
 dim(slopes)
 slopes<- subset(slopes, task.id %in% cors$task.id); dim(slopes)
 
-filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/", pattern="cors_*", full.names=TRUE)
+filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/prior sd1/", pattern="cors_*", full.names=TRUE)
 ldf <- lapply(filenamesCorraw, readRDS)
 corSamples<- do.call(rbind.data.frame, ldf)
 dim(corSamples)
 corSamples<- subset(corSamples, task.id %in% cors$task.id); dim(corSamples)
 
+print("prior sd = 1")
+sd(cors$meanCor)
+sd(slopes$trend_T1)
+sd(slopes$trend_T2)
+sd(corSamples$cor)
 
 cors$evidence<- "none"
 cors$evidence[cors$lower80Cor>0 | cors$upper80Cor <0] <- "weak"
@@ -95,8 +101,8 @@ sdSlopes<- aggregate(.~ task.id +Taxon1 +Taxon2 +Plot_ID + Datasource_ID+Realm, 
 mnSlopes$sdTrend_T1<- sdSlopes$trend_T1
 mnSlopes$sdTrend_T2<- sdSlopes$trend_T2
 cor(mnSlopes$sdTrend_T1, mnSlopes$sdTrend_T2) # 0.866 high correlation so we might just use the mean sd of the two trends for weighting 
-mnSlopes$wgt<- apply(mnSlopes[, c("sdTrend_T1", "sdTrend_T2")], 1, mean) # 
-merge(slopes, mnSlopes[, c("task.id", "Taxon1","Taxon2", "Plot_ID", "wgt")]) # merge sd's into original slopes so that these can be used for weighting 
+mnSlopes$mnSD<- apply(mnSlopes[, c("sdTrend_T1", "sdTrend_T2")], 1, mean) # 
+merge(slopes, mnSlopes[, c("task.id", "Taxon1","Taxon2", "Plot_ID", "mnSD")]) # merge sd's into original slopes so that these can be used for weighting 
 
 ggplot(mnSlopes, aes(x = Realm, y = trend_T1)) + # variability for fw is much higher... 
   geom_point(position = "jitter")+
@@ -113,7 +119,7 @@ boxplot(sdSlopes$trend_T1 ~ sdSlopes$Realm )
 #Fig 2a?  overall correlations #####
 mnSlpFw<- subset(mnSlopes , Realm == "Freshwater")
 mnSlpT<- subset(mnSlopes , Realm == "Terrestrial")
-cor.test(mnSlpFw$trend_T1, mnSlpFw$trend_T2) # r = 0.237, p = <0.0001
+cor.test(mnSlpFw$trend_T1, mnSlpFw$trend_T2) # r = 0.241, p = <0.0001
 cor.test(mnSlpT$trend_T1,  mnSlpT$trend_T2) # r = 0.20, p = <0.0001
 # try weighted correlation 
 library(wCorr)
@@ -125,6 +131,16 @@ table(mnSlopes$trend_T1>0, mnSlopes$trend_T2>0, mnSlopes$Realm )
 plot(density(mnSlopes$trend_T1))
 hist(slopes$trend_T2) # Almost equal increaes and decreases, but parallel increases ad declines are more common 
 #plot(slopes$trend_T1~ slopes$trend_T2)
+
+
+#extract percentages in each corner
+dat_text<- as.data.frame(table(mnSlopes$trend_T1>0, mnSlopes$trend_T2>0, mnSlopes$Realm ))
+dat_text$prop<- round( dat_text$Freq /  rep(table(mnSlopes$Realm ), each = 4), 2)
+dat_text$x<-  c(-0.12, 0.12, -0.12, 0.12,     -0.08,  0.05, -0.08, 0.05 )
+dat_text$y <- c(-0.12, -0.12, 0.15, 0.15,     -0.08, -0.08, 0.06,  0.06)
+dat_text$Realm <- dat_text$Var3
+dat_text$txt<- paste0 (dat_text$prop*100 , "%")
+
 
 # plot all sampled slopes
 ggplot(slopes , aes(x = trend_T1, y = trend_T2)) + 
@@ -141,8 +157,11 @@ ggplot(mnSlopes , aes(x = trend_T1, y = trend_T2)) +
   xlab("") + ylab("")+
   geom_abline(intercept = 0 , slope = 1)+
   geom_hline(yintercept = 0)+ geom_vline(xintercept = 0)+
-  facet_wrap(.~Realm, scales = "free") # slopes with multiple pairwise comparisons are plotted multiple times here. 
-
+  facet_wrap(.~Realm, scales = "free") +# slopes with multiple pairwise comparisons are plotted multiple times here. 
+  geom_text(
+    data    = dat_text,
+    mapping = aes(x = x, y = y, label = prop)
+  )
 
 
 
@@ -200,14 +219,24 @@ while (nrow(mnSlopesX)>0) {
 }; dim(mnSlopesRandom)
 
 # only mean slopes
-ggplot(subset(mnSlopesRandom, task.id %in% subset(cors, numberOfGoodDatasets >4)$task.id), aes(x = trend_T1, y = trend_T2)) + 
+#dat_text<- as.data.frame(table(mnSlopesRandom$trend_T1>0, mnSlopesRandom$trend_T2>0, mnSlopesRandom$Realm ))
+#dat_text$prop<- round( dat_text$Freq /  rep(table(mnSlopesRandom$Realm ), each = 4), 2)
+#dat_text$x<-  c(-0.12, 0.12, -0.12, 0.12,     -0.08,  0.05, -0.08, 0.05 )
+#dat_text$y <- c(-0.12, -0.12, 0.15, 0.15,     -0.08, -0.08, 0.06,  0.06)
+#dat_text$Realm <- dat_text$Var3
+
+
+ggplot(mnSlopesRandom, aes(x = trend_T1, y = trend_T2)) + 
   geom_bin2d(bins=50)+ 
   xlab("") + ylab("")+
-  geom_abline(intercept = 0 , slope = 1)+
+  #geom_abline(intercept = 0 , slope = 1)+
  # geom_smooth(method = "lm")+
   geom_hline(yintercept = 0)+ geom_vline(xintercept = 0)+
   facet_wrap(.~Realm, scales = "free")+
   ggtitle("Mean slopes")+
+  geom_text(
+    data    = dat_text,
+    mapping = aes(x = x, y = y, label = txt) )+
   theme_clean
 
 
@@ -278,6 +307,8 @@ sigSlopes90both= subset(sigSlopes,  (lower90SlpT1>0 | upper90SlpT1 <0) & (lower9
 sigSlopes95both= subset(sigSlopes,  (lower95SlpT1>0 | upper95SlpT1 <0) & (lower95SlpT2>0 | upper95SlpT2 <0)) 
 )
 
+
+
 lapply(mnSlopesSig, function(x) { 
 ggplot( x  , 
        aes(x = meanSlpT1, y = meanSlpT2)) + 
@@ -305,12 +336,16 @@ frequencies<- rbind(frequencies, test)
 
 # make df of wrongly allocated directions under assumption of parity  
 falseFreq<- aggregate (.~ dfName + Var3, data = subset(frequencies, Var1 != Var2  ), sum)
-ggplot(falseFreq, aes (x = dfName, y = prop,   color = Var3))+ 
+falseFreq$dfName <-factor(falseFreq$dfName, levels = rev(sort(unique(falseFreq$dfName))))
+falseFreq$propcorrect<- 1-falseFreq$prop
+
+
+ggplot(falseFreq, aes (x = dfName, y = propcorrect,   color = Var3))+ 
   geom_point(size = 4)+
   coord_flip()+
-  ylim (0, 0.5)+
+  ylim ( 0.5, 1)+
   scale_color_manual(values = col.scheme.realm)+
-  ylab ("proportion opposite direction")+
+  ylab ("Proportion slopes in same direction")+
   theme_clean
 
 
@@ -385,6 +420,24 @@ b<- unique((corSamples[, c("Taxon2", "Realm")]))
 names(b)<- names(a) # to have the same colum names
 taxaRealm<- unique(rbind(a,b))
 
+meanCorPerTaxon <- NULL
+allcors<- NULL
+for (i in 1 : nrow(taxaRealm)){ 
+  subs<- subset(cors, Taxon1 == taxaRealm[i,"Taxon1"] & Realm == taxaRealm[i,"Realm"] | 
+                  Taxon2 == taxaRealm[i,"Taxon1"] & Realm == taxaRealm[i,"Realm"])  
+  subs$Taxon<- taxaRealm[i,"Taxon1"]
+  res<-data.frame(
+    Taxon = taxaRealm[i,"Taxon1"],
+    Realm = taxaRealm[i,"Realm"],
+    nrCorrelations = nrow(subs),
+    meanCor = mean(subs$medianCor), 
+    sdCor = sd(subs$medianCor)  )
+  
+  meanCorPerTaxon<- rbind (meanCorPerTaxon, res)
+  allcors<- rbind(allcors, subs)
+}
+arrange(meanCorPerTaxon, Realm, Taxon)
+
 allcorSamples<- NULL
 for (i in 1 : nrow(taxaRealm)){ 
   subs<- subset(corSamples, Taxon1 == taxaRealm[i,"Taxon1"] & Realm == taxaRealm[i,"Realm"] | 
@@ -410,7 +463,7 @@ corCIs<-  allcorSamples %>%
     lower95cor = quantile(cor,0.025),
     upper95cor = quantile(cor,0.975))
     
-allcorSamples$good<- FALSE
+allcorSamples$good<- FALSE # a sort of blunt force way of figuring out which values to include in the plot 
 for (i in 1: nrow(allcorSamples)){
 
   ii<- allcorSamples$task.id[i]
@@ -567,7 +620,6 @@ corrplot((badmatrT), p.mat = (pbadMatrT),   is.corr = FALSE, tl.col = 'black', n
 
 
 # Fig 2c plot correlations for by  taxon 
-cors1<- subset(cors, numberOfGoodDatasets >4)
 
 a<- unique((cors1[, c("Taxon1", "Realm")]))  
 b<- unique((cors1[, c("Taxon2", "Realm")]))  
@@ -578,7 +630,7 @@ taxaRealm<- unique(rbind(a,b))
 meanCorPerTaxon <- NULL
 allcors<- NULL
 for (i in 1 : nrow(taxaRealm)){ 
-  subs<- subset(cors1, Taxon1 == taxaRealm[i,"Taxon1"] & Realm == taxaRealm[i,"Realm"] | 
+  subs<- subset(cors, Taxon1 == taxaRealm[i,"Taxon1"] & Realm == taxaRealm[i,"Realm"] | 
                   Taxon2 == taxaRealm[i,"Taxon1"] & Realm == taxaRealm[i,"Realm"])  
   subs$Taxon<- taxaRealm[i,"Taxon1"]
   res<-data.frame(
@@ -697,6 +749,17 @@ ggplot()+
 
 # excursion: why is teh variance in the fw so much higher than in terr???
 
+
+
+# relation corelation and sd of trends
+dim(slopes)
+
+test<- merge(cors, mnSlopes); dim(test)
+
+ggplot(test, aes (x = wgt, y = meanCor, color = Realm))+
+  geom_point()+
+  scale_fill_manual(values = col.scheme.realm)
+ # nothing interesting here
 
 #read in data
 myData<- readRDS("C:\\Dropbox\\Insect Biomass Trends/csvs/taxon correlations/Fulldata allorders.rds")
@@ -869,4 +932,5 @@ ggplot(subset(allcors, numberOfGoodDatasets >4 & numberOfGoodPlots >19), aes(x =
   theme_clean +
   theme(legend.key=element_blank(), 
         legend.position="bottom") # ugly 
+
 
