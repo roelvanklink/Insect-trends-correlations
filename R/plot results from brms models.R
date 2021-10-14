@@ -21,6 +21,7 @@ ldf <- lapply(filenames, readRDS)
 cors<- do.call(rbind.data.frame, ldf); dim(cors)
 cors<- subset(cors, numberOfGoodDatasets >4); dim(cors) # exclude crappy data  57 -> 46
 
+
 filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/prior sd1/", pattern="slope*", full.names=TRUE)
 ldf <- lapply(filenamesSlopes, readRDS)
 slopes<- do.call(rbind.data.frame, ldf)
@@ -82,16 +83,16 @@ dataMatrF<- dcast(subset(cors, numberOfGoodDatasets >4 & Realm == "Freshwater"),
 rownames(dataMatrF) <- dataMatrF$Taxon1
 dataMatrF<- as.matrix(dataMatrF[, -(1)])
 dataMatrT<- dcast(subset(cors, numberOfGoodDatasets >4 & Realm == "Terrestrial"),   Taxon1 ~ Taxon2, value.var = "numberOfGoodDatasets")
-rownames(dataMatrT) <- dataMatrT$Taxon2
+rownames(dataMatrT) <- dataMatrT$Taxon1
 dataMatrT<- as.matrix(dataMatrT[, -(1)])
 col3 = hcl.colors(7, "YlOrRd", rev = TRUE)
 corrplot(dataMatrF,   col = col3,   is.corr = FALSE, tl.col = 'black', type = 'lower',   col.lim = c(5, 19), 
-         method = 'color',  diag = T, na.label = "na", 
+         method = 'color',  diag = T, na.label = " ", 
          title = "Freshwater", mar=c(0,0,1,0))
 corrplot(dataMatrT,   col = col3,   is.corr = FALSE, tl.col = 'black', type = 'lower', col.lim = c(5, 19), 
          method = 'color', diag = T, 
          title = "Terrestrial", mar=c(0,0,1,0),
-         na.label = "na") #
+         na.label = " ") #
 
 
 
@@ -114,7 +115,7 @@ boxplot(sdSlopes$trend_T1 ~ sdSlopes$Realm )
 
 
 
-
+ 
 
 #Fig 2a?  overall correlations #####
 mnSlpFw<- subset(mnSlopes , Realm == "Freshwater")
@@ -123,8 +124,8 @@ cor.test(mnSlpFw$trend_T1, mnSlpFw$trend_T2) # r = 0.241, p = <0.0001
 cor.test(mnSlpT$trend_T1,  mnSlpT$trend_T2) # r = 0.20, p = <0.0001
 # try weighted correlation 
 library(wCorr)
-weightedCorr(mnSlpFw$trend_T1, mnSlpFw$trend_T2 , weights = 1/mnSlpFw$wgt) # 0.28
-weightedCorr(mnSlpT$trend_T1, mnSlpT$trend_T2 , weights = 1/mnSlpT$wgt) # 0.27
+weightedCorr(mnSlpFw$trend_T1, mnSlpFw$trend_T2 , weights = 1/mnSlpFw$mnSD) # 0.28
+weightedCorr(mnSlpT$trend_T1, mnSlpT$trend_T2 , weights = 1/mnSlpT$mnSD) # 0.27
 
 
 table(mnSlopes$trend_T1>0, mnSlopes$trend_T2>0, mnSlopes$Realm )
@@ -177,12 +178,12 @@ slopesRandom<- NULL
 while (nrow(slopesX)>0) {
   slopesRandom2<- stratified(slopesX, "Plot_ID", 1); dim(slopesRandom2) # take 1 slope per plot from all mean slopes
   slopesRandom<- rbind(slopesRandom, slopesRandom2); dim(slopesRandom) # glue selected random dfs  together
-  slopesX<- slopesX [!slopesX$index1 %in% mnSlopesRandom$index1 &  # remove the randomly selected taxa from each plot 
+  slopesX<- slopesX [!slopesX$index1 %in% slopesRandom$index1 &  # remove the randomly selected taxa from each plot 
                            !slopesX$index1 %in% slopesRandom$index2&
                            !slopesX$index2 %in% slopesRandom$index1&
                            !slopesX$index2 %in% slopesRandom$index2, ] ; dim(slopesX) #  repeat until no rows left 
 }; dim(slopesRandom)
-slopesRandom <- merge(slopesRandom, mnSlopes[, c("task.id", "Taxon1","Taxon2", "Plot_ID", "wgt")]); dim(slopesRandom)  # merge in matching mean sd as weight 
+slopesRandom <- merge(slopesRandom, mnSlopes[, c("task.id", "Taxon1","Taxon2", "Plot_ID", "mnSD")]); dim(slopesRandom)  # merge in matching mean sd as weight 
 
         ggplot(subset(slopesRandom, task.id %in% subset(cors, numberOfGoodDatasets >4)$task.id)  , aes(x = trend_T1, y = trend_T2)) + 
           geom_bin2d(bins=50)+ 
@@ -193,11 +194,11 @@ slopesRandom <- merge(slopesRandom, mnSlopes[, c("task.id", "Taxon1","Taxon2", "
 
 slopesRandomFw<- subset(slopesRandom, Realm == "Freshwater" )
 cor.test(slopesRandomFw$trend_T1,slopesRandomFw$trend_T2) # r
-weightedCorr(slopesRandomFw$trend_T1, slopesRandomFw$trend_T2, weights = 1/slopesRandomFw$wgt)
+weightedCorr(slopesRandomFw$trend_T1, slopesRandomFw$trend_T2, weights = 1/slopesRandomFw$mnSD)
 
 slopesRandomT<- subset(slopesRandom, Realm == "Terrestrial")
 cor.test(slopesRandomT$trend_T1, slopesRandomT$trend_T2) # r =
-weightedCorr(slopesRandomT$trend_T1,slopesRandomT$trend_T2, weights = 1/slopesRandomT$wgt)
+weightedCorr(slopesRandomT$trend_T1,slopesRandomT$trend_T2, weights = 1/slopesRandomT$mnSD)
 
 slopesT<- subset(slopes, Realm == "Terrestrial")
 
@@ -241,23 +242,26 @@ ggplot(mnSlopesRandom, aes(x = trend_T1, y = trend_T2)) +
 
 
 # overall correlations (results par 2)
+aggregate( .~     Realm, data= cors[4:14], FUN = "mean")
+
+#THrashed: 
 mnSlopesRandomFw<- subset(mnSlopesRandom,  Realm == "Freshwater")
 cor.test(mnSlopesRandomFw$trend_T1,mnSlopesRandomFw$trend_T2) # r = 0.237, p = <0.0001
 #fwcors<- c(fwcors,  cor(mnSlopesRandomFw$trend_T1, mnSlopesRandomFw$trend_T2)) # In case I wanna loop this x times. but this will only give the same as the overall r   r = 0.19, p = <0.0001
-weightedCorr(mnSlopesRandomFw$trend_T1,mnSlopesRandomFw$trend_T2, weights = 1/mnSlopesRandomFw$wgt)
+weightedCorr(mnSlopesRandomFw$trend_T1,mnSlopesRandomFw$trend_T2, weights = 1/mnSlopesRandomFw$mnSD)
 
 mnSlopesRandomT<- subset(mnSlopesRandom,  Realm == "Terrestrial")
 cor.test(mnSlopesRandomT$trend_T1, mnSlopesRandomT$trend_T2) # r = 0.19, p = <0.0001
 #Tercors<- c(Tercors,  cor(mnSlopesRandomT$trend_T1, mnSlopesRandomT$trend_T2)) # r = 0.19, p = <0.0001
-weightedCorr(mnSlopesRandomT$trend_T1,mnSlopesRandomT$trend_T2, weights = 1/mnSlopesRandomT$wgt)
+weightedCorr(mnSlopesRandomT$trend_T1,mnSlopesRandomT$trend_T2, weights = 1/mnSlopesRandomT$mnSD)
 
 median(Tercors)  # only works in case of loop. 
 cor.test(subset(mnSlopes, Realm == "Terrestrial")$trend_T1, subset(mnSlopes, Realm == "Terrestrial")$trend_T2)
-weightedCorr(subset(mnSlopes, Realm == "Terrestrial")$trend_T1, subset(mnSlopes, Realm == "Terrestrial")$trend_T2, weights = 1/subset(mnSlopes, Realm == "Terrestrial")$wgt)
+weightedCorr(subset(mnSlopes, Realm == "Terrestrial")$trend_T1, subset(mnSlopes, Realm == "Terrestrial")$trend_T2, weights = 1/subset(mnSlopes, Realm == "Terrestrial")$mnSD)
 
 median(fwcors)
 cor.test(subset(mnSlopes, Realm == "Freshwater")$trend_T1, subset(mnSlopes, Realm == "Freshwater")$trend_T2)
-weightedCorr(subset(mnSlopes, Realm == "Freshwater")$trend_T1, subset(mnSlopes, Realm == "Freshwater")$trend_T2, weights = 1/subset(mnSlopes, Realm == "Freshwater")$wgt)
+weightedCorr(subset(mnSlopes, Realm == "Freshwater")$trend_T1, subset(mnSlopes, Realm == "Freshwater")$trend_T2, weights = 1/subset(mnSlopes, Realm == "Freshwater")$mnSD)
 # almost the same! 
 # not sure what this tells us. 
 # but this is almost a necessity! because negative covariance can only occur in maximum half of all comparisons
@@ -347,9 +351,9 @@ ggplot(falseFreq, aes (x = dfName, y = propcorrect,   color = Var3))+
   scale_color_manual(values = col.scheme.realm)+
   ylab ("Proportion slopes in same direction")+
   theme_clean
+# this is actually not correct. The correlations for both significant are not 85%, but unknown. 
 
 
-#What about 
 
 
 
@@ -397,10 +401,10 @@ pMatrT<- as.matrix(pMatrT[, -(1)])
 par(mfrow = c(1,2))
 #corrplot(as.matrix(testmatr))
 #corrplot(testmatr, method = 'ellipse')#, order = 'AOE', type = 'upper')
-corrplot(testmatr,p.mat = pMatrFW,   is.corr =F, type = 'lower',tl.col = 'black', na.label = "na",
+corrplot(testmatr,p.mat = pMatrFW,   is.corr =F, type = 'lower',tl.col = 'black', na.label = ".",
          col.lim = c(-0.10, 0.4), insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), 
          pch.cex = 1.5, pch.col = 'grey20')
-corrplot(testmatrT, p.mat = pMatrT,  is.corr = F, type = 'lower',tl.col = 'black', na.label = "na",
+corrplot(testmatrT, p.mat = pMatrT,  is.corr = F, type = 'lower',tl.col = 'black', na.label = ".",
          col.lim = c(-0.10, 0.4), insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), 
          pch.cex = 1.5, pch.col = 'grey20')
 
@@ -481,7 +485,7 @@ ggplot()+
               position=position_dodge(width= 0.6)) +
   geom_point(data = allcors, aes(x = Taxon, y = medianCor, group = Realm), shape = 1, color = "black", #fill = "black",  
              position=position_dodge(width= 0.6)) +
-  stat_summary(data =subset(allcorSamples, good == TRUE) , aes(x = Taxon, y = cor,  group = Realm) , fun=median, geom="point", size=3, fill="black", shape = 18, 
+  geom_point(data =meanCorPerTaxon , aes(x = Taxon, y = meanCor,  group = Realm) ,  size=3, fill="black", shape = 18, 
                position=position_dodge(width= 0.6))+
   geom_hline(yintercept = 0)+
   scale_color_manual(values = col.scheme.realm)+
@@ -511,98 +515,103 @@ ggplot()+
 # Rest taxa 
 #############
 
-filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa/", pattern="*corSum*", full.names=TRUE)
+filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa prior sd1/", pattern="*corSum*", full.names=TRUE)
 ldf <- lapply(filenames, readRDS)
-cors<- do.call(rbind.data.frame, ldf)
+Gcors<- do.call(rbind.data.frame, ldf)
 
-filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa/", pattern="slope*", full.names=TRUE)
+filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa prior sd1/", pattern="slope*", full.names=TRUE)
 ldf <- lapply(filenamesSlopes, readRDS)
 slopes<- do.call(rbind.data.frame, ldf)
 dim(slopes)
 
-filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa/", pattern="cors_*", full.names=TRUE)
+filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa prior sd1/", pattern="cors_*", full.names=TRUE)
 ldf <- lapply(filenamesCorraw, readRDS)
 corSamples<- do.call(rbind.data.frame, ldf)
 dim(corSamples)
 
 
 
-cors$evidence<- "none"
-cors$evidence[cors$lower80Cor>0 | cors$upper80Cor <0] <- "weak"
-cors$evidence[cors$lower90Cor>0 | cors$upper90Cor <0] <- "medium"
-cors$evidence[cors$lower95Cor>0 | cors$upper95Cor <0] <- "strong"
-cors$evidencenum<- 1
-cors$evidencenum[cors$lower80Cor>0 | cors$upper80Cor <0] <- 0.04
-cors$evidencenum[cors$lower90Cor>0 | cors$upper90Cor <0] <- 0.009
-cors$evidencenum[cors$lower95Cor>0 | cors$upper95Cor <0] <- 0.0001
+Gcors$evidence<- "none"
+Gcors$evidence[Gcors$lower80Cor>0 | Gcors$upper80Cor <0] <- "weak"
+Gcors$evidence[Gcors$lower90Cor>0 | Gcors$upper90Cor <0] <- "medium"
+Gcors$evidence[Gcors$lower95Cor>0 | Gcors$upper95Cor <0] <- "strong"
+Gcors$evidencenum<- 1
+Gcors$evidencenum[Gcors$lower80Cor>0 | Gcors$upper80Cor <0] <- 0.04
+Gcors$evidencenum[Gcors$lower90Cor>0 | Gcors$upper90Cor <0] <- 0.009
+Gcors$evidencenum[Gcors$lower95Cor>0 | Gcors$upper95Cor <0] <- 0.0001
 
 
 # REST: data availability #####
-cors2<- cors
-cors$Taxon1[cors2$Taxon1 == "Simuliidae"] <- cors$Taxon2[cors$Taxon1 == "Simuliidae"] # replace column of simuliidae with paired taxa
-cors$Taxon2[cors2$Taxon1 == "Simuliidae"] <-  "Simuliidae" # put simuliidae in their places 
+Gcors2<- Gcors
+Gcors$Taxon1[Gcors2$Taxon1 == "Simuliidae"] <- Gcors$Taxon2[Gcors$Taxon1 == "Simuliidae"] # replace column of simuliidae with paired taxa
+Gcors$Taxon2[Gcors2$Taxon1 == "Simuliidae"] <-  "Simuliidae" # put simuliidae in their places 
 
 
-dataMatrF<- dcast(subset(cors, numberOfGoodDatasets >4 & Realm == "Freshwater"),   Taxon1 ~ Taxon2, value.var = "numberOfGoodDatasets")
-rownames(dataMatrF) <- dataMatrF$Taxon1
-dataMatrF<- as.matrix(dataMatrF[, -(1)])
-dataMatrT<- dcast(subset(cors, numberOfGoodDatasets >4 & Realm == "Terrestrial"),   Taxon2 ~ Taxon1, value.var = "numberOfGoodDatasets")
-rownames(dataMatrT) <- dataMatrT$Taxon2
-dataMatrT<- as.matrix(dataMatrT[, -(1)])
+GdataMatrF<- dcast(subset(Gcors, numberOfGoodDatasets >4 & Realm == "Freshwater"& numberOfGoodPlots >19),   Taxon1 ~ Taxon2, value.var = "numberOfGoodDatasets")
+rownames(GdataMatrF) <- GdataMatrF$Taxon1
+GdataMatrF<- as.matrix(GdataMatrF[, -(1)])
+GdataMatrT<- dcast(subset(Gcors, numberOfGoodDatasets >4 & Realm == "Terrestrial" & numberOfGoodPlots >19),   Taxon2 ~ Taxon1, value.var = "numberOfGoodDatasets")
+rownames(GdataMatrT) <- GdataMatrT$Taxon2
+GdataMatrT<- as.matrix(GdataMatrT[, -(1)])
 col3 = hcl.colors(7, "YlOrRd", rev = TRUE)
-corrplot(dataMatrF,   col = col3,   is.corr = FALSE, tl.col = 'black', col.lim = c(5, 19), 
-         method = 'color',  diag = T, na.label = "na", 
+par(mfrow = c(1,2))
+corrplot(GdataMatrF,   col = col3,   is.corr = FALSE, tl.col = 'black', col.lim = c(5, 19), 
+         method = 'color',  diag = T,  na.label = " ", 
          title = "Freshwater", mar=c(0,0,1,0))
-corrplot(dataMatrT,   col = col3,   is.corr = FALSE, tl.col = 'black', col.lim = c(5, 19), 
+corrplot(GdataMatrT,   col = col3,   is.corr = FALSE, tl.col = 'black', col.lim = c(5, 19), 
          method = 'color', diag = T, 
          title = "Terrestrial", mar=c(0,0,1,0),
-         na.label = "na") #
+         na.label = " ") #
 
 
 
-testmatr<- dcast(subset(cors, Realm == "Freshwater" & numberOfGoodDatasets >4 & numberOfGoodPlots >19 ) , Taxon1 ~ Taxon2, value.var = "medianCor")
-testmatrT<- dcast(subset(cors, Realm == "Terrestrial" & numberOfGoodDatasets >4  ) , Taxon1 ~ Taxon2, value.var = "medianCor")
-rownames(testmatr) <- testmatr$Taxon1
-testmatr<- as.matrix(testmatr[, -(1)])
-rownames(testmatrT) <- testmatrT$Taxon1
-testmatrT<- as.matrix(testmatrT[, -(1)])
-min(testmatr , na.rm = T); max(testmatr , na.rm = T)
-min(testmatrT , na.rm = T); max(testmatrT , na.rm = T)
+GtestmatrF<- dcast(subset(Gcors, Realm == "Freshwater" & numberOfGoodDatasets >4 & numberOfGoodPlots >19 ) , Taxon1 ~ Taxon2, value.var = "medianCor")
+rownames(GtestmatrF) <- GtestmatrF$Taxon1
+GtestmatrF<- as.matrix(GtestmatrF[, -(1)])
+GtestmatrT<- dcast(subset(Gcors, Realm == "Terrestrial" & numberOfGoodDatasets >4  & numberOfGoodPlots >19 ) , Taxon1 ~ Taxon2, value.var = "medianCor")
+rownames(GtestmatrT) <- GtestmatrT$Taxon1
+GtestmatrT<- as.matrix(GtestmatrT[, -(1)])
+min(GtestmatrF , na.rm = T); max(GtestmatrF , na.rm = T)
+min(GtestmatrT , na.rm = T); max(GtestmatrT , na.rm = T)
 
-pMatrFW<- dcast(subset(cors, Realm == "Freshwater" & numberOfGoodDatasets >4 & numberOfGoodPlots >19 ) , Taxon1 ~ Taxon2, value.var = "evidencenum")
-rownames(pMatrFW) <- pMatrFW$Taxon1
-pMatrFW<- as.matrix(pMatrFW[, -(1)])
-pMatrT<- dcast(subset(cors, Realm == "Terrestrial" & numberOfGoodDatasets >4 & numberOfGoodPlots >19 ) , Taxon1 ~ Taxon2, value.var = "evidencenum")
-rownames(pMatrT) <- pMatrT$Taxon1
-pMatrT<- as.matrix(pMatrT[, -(1)])
+GpMatrFW<- dcast(subset(Gcors, Realm == "Freshwater" & numberOfGoodDatasets >4 & numberOfGoodPlots >19 ) , Taxon1 ~ Taxon2, value.var = "evidencenum")
+rownames(GpMatrFW) <- GpMatrFW$Taxon1
+GpMatrFW<- as.matrix(GpMatrFW[, -(1)])
+GpMatrT<- dcast(subset(Gcors, Realm == "Terrestrial" & numberOfGoodDatasets >4& numberOfGoodPlots >19 ) , Taxon1 ~ Taxon2, value.var = "evidencenum")
+rownames(GpMatrT) <- GpMatrT$Taxon1
+GpMatrT<- as.matrix(GpMatrT[, -(1)])
 
 
 
 par(mfrow = c(1,2))
 #corrplot(as.matrix(testmatr))
 #corrplot(testmatr, method = 'ellipse')#, order = 'AOE', type = 'upper')
-corrplot(testmatr, p.mat = pMatrFW,   is.corr =F, tl.col = 'black', na.label = "na",
-         col.lim = c(-0.02, 0.09), insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), 
+corrplot(GtestmatrF, p.mat = GpMatrFW,   is.corr =F, tl.col = 'black', na.label = " ",
+         col.lim = c(-0.02, 0.2), insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), 
          pch.cex = 1.5, pch.col = 'grey20', title = "Freshwater", mar=c(0,0,1,0))
-corrplot(testmatrT, p.mat = pMatrT,  is.corr = F, tl.col = 'black', na.label = "na",
-         col.lim = c(-0.02, 0.22), insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), 
+corrplot(t(GtestmatrT), p.mat = t(GpMatrT),  is.corr = F, tl.col = 'black', na.label = ".",
+         col = colorRampPalette(c(#"#67001F", "#B2182B", 
+                                  #"#D6604D", "#F4A582", "#FDDBC7", 
+                                  "#FFFFFF", "#D1E5F0", "#92C5DE", 
+                                  "#4393C3", "#2166AC", "#053061"))(200), 
+         col.lim = c(-0, 0.20), insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), 
          pch.cex = 1.5, pch.col = 'grey20', title = "Terrestrial", mar=c(0,0,1,0))
 
 
 
-badmatrFW<- dcast(subset(cors, Realm == "Freshwater" & numberOfGoodDatasets <5 ) , Taxon1 ~ Taxon2, value.var = "medianCor")
+badmatrFW<- dcast(subset(Gcors, Realm == "Freshwater" & numberOfGoodDatasets <5 ) , Taxon1 ~ Taxon2, value.var = "medianCor")
 rownames(badmatrFW) <- badmatrFW$Taxon1
 badmatrFW<- as.matrix(badmatrFW[, -(1)])
-badmatrT<- dcast(subset(cors, Realm == "Terrestrial" & numberOfGoodDatasets <5 & numberOfGoodPlots >19 ) , Taxon1 ~ Taxon2, value.var = "medianCor")
+badmatrT<- dcast(subset(Gcors, Realm == "Terrestrial" & numberOfGoodDatasets <5 & numberOfGoodPlots >19 ) , Taxon1 ~ Taxon2, value.var = "medianCor")
 rownames(badmatrT) <- badmatrT$Taxon1
 badmatrT<- as.matrix(badmatrT[, -(1)])
 min(badmatrFW , na.rm = T); max(badmatrFW , na.rm = T)
 min(badmatrT , na.rm = T); max(badmatrT , na.rm = T)
 
-pbadMatrFW<- dcast(subset(cors, Realm == "Freshwater" & numberOfGoodDatasets <5 ) , Taxon1 ~ Taxon2, value.var = "evidencenum")
+pbadMatrFW<- dcast(subset(Gcors, Realm == "Freshwater" & numberOfGoodDatasets <5 ) , Taxon1 ~ Taxon2, value.var = "evidencenum")
 rownames(pbadMatrFW) <- pbadMatrFW$Taxon1
 pbadMatrFW<- as.matrix(pbadMatrFW[, -(1)])
-pbadMatrT<- dcast(subset(cors, Realm == "Terrestrial" & numberOfGoodDatasets <5 ) , Taxon1 ~ Taxon2, value.var = "evidencenum")
+pbadMatrT<- dcast(subset(Gcors, Realm == "Terrestrial" & numberOfGoodDatasets <5 ) , Taxon1 ~ Taxon2, value.var = "evidencenum")
 rownames(pbadMatrT) <- pbadMatrT$Taxon1
 pbadMatrT<- as.matrix(pbadMatrT[, -(1)])
 
@@ -621,16 +630,16 @@ corrplot((badmatrT), p.mat = (pbadMatrT),   is.corr = FALSE, tl.col = 'black', n
 
 # Fig 2c plot correlations for by  taxon 
 
-a<- unique((cors1[, c("Taxon1", "Realm")]))  
-b<- unique((cors1[, c("Taxon2", "Realm")]))  
+a<- unique((Gcors1[, c("Taxon1", "Realm")]))  
+b<- unique((Gcors1[, c("Taxon2", "Realm")]))  
 names(b)<- names(a)
 taxaRealm<- unique(rbind(a,b))
 
 
 meanCorPerTaxon <- NULL
-allcors<- NULL
+allGcors<- NULL
 for (i in 1 : nrow(taxaRealm)){ 
-  subs<- subset(cors, Taxon1 == taxaRealm[i,"Taxon1"] & Realm == taxaRealm[i,"Realm"] | 
+  subs<- subset(Gcors, Taxon1 == taxaRealm[i,"Taxon1"] & Realm == taxaRealm[i,"Realm"] | 
                   Taxon2 == taxaRealm[i,"Taxon1"] & Realm == taxaRealm[i,"Realm"])  
   subs$Taxon<- taxaRealm[i,"Taxon1"]
   res<-data.frame(
@@ -641,7 +650,7 @@ for (i in 1 : nrow(taxaRealm)){
     sdCor = sd(subs$medianCor)  )
   
   meanCorPerTaxon<- rbind (meanCorPerTaxon, res)
-  allcors<- rbind(allcors, subs)
+  allGcors<- rbind(allGcors, subs)
 }
 arrange(meanCorPerTaxon, Realm, Taxon)
 ggplot(meanCorPerTaxon, aes(x = Taxon, y = meanCor, color = Realm))+
@@ -651,7 +660,7 @@ ggplot(meanCorPerTaxon, aes(x = Taxon, y = meanCor, color = Realm))+
   #  geom_hline()
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
-ggplot(subset(allcors, numberOfGoodDatasets >4 & numberOfGoodPlots >19), aes(x = Taxon, y = medianCor, color = Realm, fill = Realm))+
+ggplot(subset(allGcors, numberOfGoodDatasets >4 & numberOfGoodPlots >19), aes(x = Taxon, y = medianCor, color = Realm, fill = Realm))+
   geom_violin(position=position_dodge(width= 0.6), alpha = 0.5) +
   geom_point(  position=position_dodge(width= 0.6)) +
   geom_errorbar(aes(ymin = lower95Cor, ymax = upper90Cor, color = Realm),  position=position_dodge(width= 0.6), width = 0)+
@@ -665,7 +674,7 @@ ggplot(subset(allcors, numberOfGoodDatasets >4 & numberOfGoodPlots >19), aes(x =
 
 
 # same thing on cor samples: 
-corSamples1<- subset(corSamples, task.id %in% subset(cors, numberOfGoodDatasets >4)$task.id)
+corSamples1<- subset(corSamples, task.id %in% subset(Gcors, numberOfGoodDatasets >4)$task.id)
 
 a<- unique((corSamples1[, c("Taxon1", "Realm")]))  
 b<- unique((corSamples1[, c("Taxon2", "Realm")]))  
@@ -716,7 +725,7 @@ for (i in 1: nrow(allcorSamples)){
 ggplot()+
   geom_violin(data =subset(allcorSamples, good == TRUE)  , aes(x = Taxon, y = cor, color = Realm, fill = Realm), 
               position=position_dodge(width= 0.6)) +
-  geom_point(data = allcors, aes(x = Taxon, y = medianCor, group = Realm), color = "black", fill = "black",  
+  geom_point(data = allGcors, aes(x = Taxon, y = medianCor, group = Realm), color = "black", fill = "black",  
              position=position_dodge(width= 0.6)) +
   stat_summary(data =subset(allcorSamples, good == TRUE) , aes(x = Taxon, y = cor,  group = Realm) , fun=median, geom="point", size=2, fill="red", shape = 23, 
                position=position_dodge(width= 0.6))+
@@ -756,7 +765,7 @@ dim(slopes)
 
 test<- merge(cors, mnSlopes); dim(test)
 
-ggplot(test, aes (x = wgt, y = meanCor, color = Realm))+
+ggplot(test, aes (x = mnSD, y = meanCor, color = Realm))+
   geom_point()+
   scale_fill_manual(values = col.scheme.realm)
  # nothing interesting here
