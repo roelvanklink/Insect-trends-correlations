@@ -61,7 +61,7 @@ length(unique(subset(slopes, Realm == "Freshwater"  )$Plot_ID))
 includedStudies<- studies [studies$Datasource_ID %in% unique(slopes$Datasource_ID) , ]
 includedPlots<- studies [studies$Datasource_ID %in% unique(slopes$Datasource_ID) , ]
 table(includedStudies$Continent, includedStudies$Realm)
-# a map here could actualy be nice 
+
 
 
 # Fig 1 Data avialability #####
@@ -137,8 +137,8 @@ hist(slopes$trend_T2) # Almost equal increaes and decreases, but parallel increa
 #extract percentages in each corner
 dat_text<- as.data.frame(table(mnSlopes$trend_T1>0, mnSlopes$trend_T2>0, mnSlopes$Realm ))
 dat_text$prop<- round( dat_text$Freq /  rep(table(mnSlopes$Realm ), each = 4), 2)
-dat_text$x<-  c(-0.12, 0.12, -0.12, 0.12,     -0.08,  0.05, -0.08, 0.05 )
-dat_text$y <- c(-0.12, -0.12, 0.15, 0.15,     -0.08, -0.08, 0.06,  0.06)
+dat_text$x<-  c(-0.20, 0.25, -0.20, 0.25,     -0.07,  0.06, -0.07, 0.06 )
+dat_text$y <- c(-0.20, -0.20, 0.20, 0.20,     -0.11, -0.11, 0.06,  0.06)
 dat_text$Realm <- dat_text$Var3
 dat_text$txt<- paste0 (dat_text$prop*100 , "%")
 
@@ -155,7 +155,7 @@ ggplot(slopes , aes(x = trend_T1, y = trend_T2)) +
 # only mean slopes
 ggplot(mnSlopes , aes(x = trend_T1, y = trend_T2)) + 
   geom_bin2d(bins=50)+ 
-  xlab("") + ylab("")+
+  xlab("Mean trend taxon 1") + ylab("Mean trend taxon 2")+
   geom_abline(intercept = 0 , slope = 1)+
   geom_hline(yintercept = 0)+ geom_vline(xintercept = 0)+
   facet_wrap(.~Realm, scales = "free") +# slopes with multiple pairwise comparisons are plotted multiple times here. 
@@ -226,15 +226,14 @@ while (nrow(mnSlopesX)>0) {
 #dat_text$y <- c(-0.12, -0.12, 0.15, 0.15,     -0.08, -0.08, 0.06,  0.06)
 #dat_text$Realm <- dat_text$Var3
 
-
+# fig 2a#####
 ggplot(mnSlopesRandom, aes(x = trend_T1, y = trend_T2)) + 
   geom_bin2d(bins=50)+ 
   xlab("") + ylab("")+
-  #geom_abline(intercept = 0 , slope = 1)+
- # geom_smooth(method = "lm")+
+  xlab("Trend slope taxon 1") + ylab("Trend slope taxon 2")+
   geom_hline(yintercept = 0)+ geom_vline(xintercept = 0)+
   facet_wrap(.~Realm, scales = "free")+
-  ggtitle("Mean slopes")+
+  #ggtitle("Mean slopes")+
   geom_text(
     data    = dat_text,
     mapping = aes(x = x, y = y, label = txt) )+
@@ -243,6 +242,7 @@ ggplot(mnSlopesRandom, aes(x = trend_T1, y = trend_T2)) +
 
 # overall correlations (results par 2)
 aggregate( .~     Realm, data= cors[4:14], FUN = "mean")
+aggregate( .~     Realm, data= cors[4:14], FUN = "sd")
 
 #THrashed: 
 mnSlopesRandomFw<- subset(mnSlopesRandom,  Realm == "Freshwater")
@@ -488,6 +488,7 @@ ggplot()+
   geom_point(data =meanCorPerTaxon , aes(x = Taxon, y = meanCor,  group = Realm) ,  size=3, fill="black", shape = 18, 
                position=position_dodge(width= 0.6))+
   geom_hline(yintercept = 0)+
+  ylab ("Correlation coefficient")+
   scale_color_manual(values = col.scheme.realm)+
   scale_fill_manual(values = col.scheme.realm)+
   coord_flip()+
@@ -512,22 +513,25 @@ ggplot()+
 
 
 
-# Rest taxa 
+# Rest taxa #####
 #############
 
 filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa prior sd1/", pattern="*corSum*", full.names=TRUE)
 ldf <- lapply(filenames, readRDS)
-Gcors<- do.call(rbind.data.frame, ldf)
+Gcors<- do.call(rbind.data.frame, ldf); dim(Gcors)
+Gcors<- subset(Gcors, numberOfGoodDatasets >4 & numberOfGoodPlots > 19); dim(Gcors) # exclude crappy data  57 -> 46
 
 filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa prior sd1/", pattern="slope*", full.names=TRUE)
 ldf <- lapply(filenamesSlopes, readRDS)
-slopes<- do.call(rbind.data.frame, ldf)
-dim(slopes)
+slopes<- do.call(rbind.data.frame, ldf); dim(slopes)
+slopes<- subset(slopes, task.id %in% Gcors$task.id); dim(slopes)
 
 filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa prior sd1/", pattern="cors_*", full.names=TRUE)
 ldf <- lapply(filenamesCorraw, readRDS)
-corSamples<- do.call(rbind.data.frame, ldf)
-dim(corSamples)
+corSamples<- do.call(rbind.data.frame, ldf); dim(corSamples)
+corSamples<- subset(corSamples, task.id %in% Gcors$task.id); dim(corSamples)
+
+
 
 
 
