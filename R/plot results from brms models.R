@@ -103,7 +103,7 @@ mnSlopes$sdTrend_T1<- sdSlopes$trend_T1
 mnSlopes$sdTrend_T2<- sdSlopes$trend_T2
 cor(mnSlopes$sdTrend_T1, mnSlopes$sdTrend_T2) # 0.866 high correlation so we might just use the mean sd of the two trends for weighting 
 mnSlopes$mnSD<- apply(mnSlopes[, c("sdTrend_T1", "sdTrend_T2")], 1, mean) # 
-merge(slopes, mnSlopes[, c("task.id", "Taxon1","Taxon2", "Plot_ID", "mnSD")]) # merge sd's into original slopes so that these can be used for weighting 
+slopes<- merge(slopes, mnSlopes[, c("task.id", "Taxon1","Taxon2", "Plot_ID", "mnSD")]) # merge sd's into original slopes so that these can be used for weighting 
 
 ggplot(mnSlopes, aes(x = Realm, y = trend_T1)) + # variability for fw is much higher... 
   geom_point(position = "jitter")+
@@ -276,8 +276,9 @@ weightedCorr(subset(mnSlopes, Realm == "Freshwater")$trend_T1, subset(mnSlopes, 
 
 
 
-# What about comparisons where at least one of the two trends is significant? 
-# expectation 
+# Is the predictability higher in teh presence of a trend? 
+# a) no trend -> proportions trend and no trend 
+# b) trend -> proportions trend and no trend 
 
 sigSlopes<-  subset(slopes, task.id %in% subset(cors, numberOfGoodDatasets >4)$task.id) %>% 
   group_by(task.id, Taxon1, Taxon2, Plot_ID, Datasource_ID, Realm) %>%
@@ -300,6 +301,75 @@ sigSlopes<-  subset(slopes, task.id %in% subset(cors, numberOfGoodDatasets >4)$t
     lower95SlpT2 = quantile(trend_T2,0.025),
     upper95SlpT2 = quantile(trend_T2,0.975))
 
+
+# proportion qualitatively in same direction
+test<-as.data.frame(table(sigSlopes$meanSlpT1 >0, sigSlopes$meanSlpT2>0, sigSlopes$Realm ))# / (table(sigSlopes$Realm) )
+test$prop <- test$Freq/rep(table(sigSlopes$Realm), each = 4)
+aggregate (.~ Var3, data = subset(test, Var1 == Var2  ), sum)# 60 / 58 % qualitatively go in same direction
+
+# how many % with no slope? 
+noSlopeboth<-  subset(sigSlopes,  lower80SlpT1<0 & upper80SlpT1 >0 & lower80SlpT2<0 & upper80SlpT2 >0)
+table(noSlopeboth$Realm)/table(sigSlopes$Realm)
+# subset to pairs where one or both have no trend 
+noSlope80 <- subset(sigSlopes,  lower80SlpT1<0 | upper80SlpT1 >0 | lower80SlpT2<0 | upper80SlpT2 >0)
+cor.test(subset(noSlope80, Realm == "Freshwater")$medianSlpT1, subset(noSlope80, Realm == "Freshwater")$medianSlpT2) # 0.34
+cor.test(subset(noSlope80, Realm == "Terrestrial")$medianSlpT1, subset(noSlope80, Realm == "Terrestrial")$medianSlpT2) # -0.02
+
+sigSlope80 <- subset(noSlope,  lower80SlpT1>0 | upper80SlpT1 <0 | lower80SlpT2>0 | upper80SlpT2 <0)
+# what percentage has a slope when a taxon with no slope is observed?
+table(noSlope80$Realm)/ table(noSlope80$Realm) #40 or 60 % with a slope! 
+test <- as.data.frame(table(noSlope80$medianSlpT1 >0, noSlope80$medianSlpT2>0, noSlope80$Realm ))# / (table(noSlopes$Realm) )
+test$prop <- test$Freq/rep(table(noSlope80$Realm), each = 4)
+sameDirection80<- aggregate (.~ Var3, data = subset(test, Var1 == Var2  ), sum); sameDirection80# 62 / 55 % qualitatively go in same direction
+
+
+
+
+# what % has no slope when any sort of slope is observed
+sigSlope80 <- subset(sigSlopes,  lower80SlpT1>0 | upper80SlpT1 <0 | lower80SlpT2>0 | upper80SlpT2 <0);dim(sigSlope80)
+cor.test(subset(sigSlope80, Realm == "Freshwater")$medianSlpT1, subset(sigSlope80, Realm == "Freshwater")$medianSlpT2) # 0.28
+cor.test(subset(sigSlope80, Realm == "Terrestrial")$medianSlpT1, subset(sigSlope80, Realm == "Terrestrial")$medianSlpT2) # 0.19
+noSlope80   <- subset(sigSlope80, lower80SlpT1<0 & upper80SlpT1 >0 | lower80SlpT2<0 & upper80SlpT2 >0 ) ; dim(noSlope80)
+table(noSlope80$Realm)/ table(sigSlope80$Realm) # > 76 /70 % no slope
+test <- as.data.frame(table(sigSlope80$medianSlpT1 >0, sigSlope80$medianSlpT2>0, sigSlope80$Realm ))# / (table(sigSlopes$Realm) )
+test$prop <- test$Freq/rep(table(sigSlope80$Realm), each = 4)
+sameDirection80<- aggregate (.~ Var3, data = subset(test, Var1 == Var2  ), sum); sameDirection80#66 / 63% qualitatively in same direction
+
+sigSlope80both<- subset(sigSlope80,  (lower80SlpT1>0 | upper80SlpT1 <0) & (lower80SlpT2>0 | upper80SlpT2 <0)); dim(sigSlope80both)
+test <- as.data.frame(table(sigSlope80both$medianSlpT1 >0, sigSlope80both$medianSlpT2>0, sigSlope80both$Realm ))# / (table(sigSlopes$Realm) )
+test$prop <- test$Freq/rep(table(sigSlope80$Realm), each = 4)
+oppositeDirection80sig<- aggregate (.~ Var3, data = subset(test, Var1 != Var2  ), sum); oppositeDirection80sig # 85 / 84 % go significantly in same direction in same direction
+
+
+# what percentage has no slope when a taxon with a strong slope is observed?
+sigSlope95 <- subset(sigSlopes,  lower95SlpT1>0 | upper95SlpT1 <0 | lower95SlpT2>0 | upper95SlpT2 <0);dim(sigSlopes95)
+cor.test(subset(sigSlope95, Realm == "Freshwater")$medianSlpT1, subset(sigSlope95, Realm == "Freshwater")$medianSlpT2) # 0.34
+cor.test(subset(sigSlope95, Realm == "Terrestrial")$medianSlpT1, subset(sigSlope95, Realm == "Terrestrial")$medianSlpT2) # 0.25
+
+noSlope95   <- subset(sigSlope80, lower80SlpT1<0 & upper80SlpT1 >0 | lower80SlpT2<0 & upper80SlpT2 >0 ) ; dim(noSlope95)
+table(sigSlope95$Realm)/ table(noSlope95$Realm) # 52 /71 % no slope
+test <- as.data.frame(table(sigSlope95$medianSlpT1 >0, sigSlope95$medianSlpT2>0, sigSlope95$Realm ))# / (table(sigSlopes$Realm) )
+test$prop <- test$Freq/rep(table(sigSlope95$Realm), each = 4)
+sameDirection95<- aggregate (.~ Var3, data = subset(test, Var1 == Var2  ), sum); sameDirection95 # 70 / 69 % qualitatively go in same direction
+
+# proportion opposite trends with strong evidence: 
+sigSlope95both<- subset(sigSlope95,  (lower95SlpT1>0 | upper95SlpT1 <0) & (lower95SlpT2>0 | upper95SlpT2 <0)); dim(sigSlopes95both)
+test <- as.data.frame(table(sigSlope95both$medianSlpT1 >0, sigSlope95both$medianSlpT2>0, sigSlope95both$Realm ))# / (table(sigSlopes$Realm) )
+test$totalComparisons<- as.data.frame(table(sigSlope95$medianSlpT1 >0, sigSlope95$medianSlpT2>0, sigSlope95$Realm ))$Freq
+test$prop <- test$Freq/rep(table(sigSlope95$Realm), each = 4)
+aggregate (.~ Var3, data = subset(test, Var1 != Var2  ), sum)
+# of all pairs with some significant slope, 2 and 3 % go in the opposite direction
+oppositeDirection95sig<- aggregate (.~ Var3, data = subset(test, Var1 != Var2  ), sum); oppositeDirection95sig # 
+oppositeDirection95sig$prop <- oppositeDirection95sig$Freq/oppositeDirection95sig$totalComparisons 
+# of the pairs with opoosite trends, 5% and 10% have strong evidence 
+
+
+
+
+
+
+
+# with evidence 
 mnSlopesSig<- list(
   allSlopes = sigSlopes, 
 sigSlopes80= subset(sigSlopes,  lower80SlpT1>0 | upper80SlpT1 <0 | lower80SlpT2>0 | upper80SlpT2 <0),
@@ -341,7 +411,6 @@ frequencies<- rbind(frequencies, test)
 # make df of wrongly allocated directions under assumption of parity  
 falseFreq<- aggregate (.~ dfName + Var3, data = subset(frequencies, Var1 != Var2  ), sum)
 falseFreq$dfName <-factor(falseFreq$dfName, levels = rev(sort(unique(falseFreq$dfName))))
-falseFreq$propcorrect<- 1-falseFreq$prop
 
 
 ggplot(falseFreq, aes (x = dfName, y = propcorrect,   color = Var3))+ 
