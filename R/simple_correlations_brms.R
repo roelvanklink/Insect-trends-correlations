@@ -182,6 +182,8 @@ for(i in 1:length(plts)){
                     sample = 1:1000,
                     trend_T1 = samples1,
                     trend_T2 = samples2,
+                    sd_T1 = sd(samples1) ,
+                    sd_T2 = sd(samples2) ,
                     Plot_ID = unique(dat$Plot_ID),
                     Datasource_ID = unique(dat$Datasource_ID),
                     Realm = realm)
@@ -197,13 +199,18 @@ for(i in 1:length(plts)){
               row.names = FALSE)
   
 }
-
+library(wCorr)
 #monte carlo simulation - get correlation coefficient for each sample
 cor_samples <- sapply(1:1000,function(i){
   
-  cor(all.ests$trend_T1[all.ests$sample==i],all.ests$trend_T2[all.ests$sample==i])
+  weightedCorr(all.ests$trend_T1[all.ests$sample==i],all.ests$trend_T2[all.ests$sample==i], 
+               weights = 1/ apply(data.frame(all.ests$sd_T1[all.ests$sample ==i], all.ests$sd_T2[all.ests$sample ==i]), 1, mean))
 })
 
+cor_samples2 <- sapply(1:1000,function(i){
+  
+  cor(all.ests$trend_T1[all.ests$sample==i],all.ests$trend_T2[all.ests$sample==i])
+})
 
 #put the 1000 values into a data frame
 cors <- data.frame(task.id = task.id,
