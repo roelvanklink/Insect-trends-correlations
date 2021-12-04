@@ -13,22 +13,40 @@ theme_clean<- theme_grey() + theme(panel.grid.major = element_blank(),
                                    axis.line = element_line(colour = "black") , 
                                    legend.key=element_blank())
 studies<-read.csv(file = "C:\\Dropbox\\Insect Biomass Trends/csvs/studies 5.2.csv", header = T); dim(studies)
+dataOrders<- readRDS("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/Data/Fulldata allorders.rds")
+dataGroups<- readRDS("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/Data/Fulldata allgroups.rds")
+
+# how large is the difference in scales between taxa (i.e. why do we do the log transformation # reviewer 1)
+mySummary <- dataOrders %>%
+  group_by(Plot_ID, Order) %>%
+  summarise(nuInd = sum(Number, na.rm = T) ,
+            nuPeriod = length(unique(Period)),
+            nuYears = length(unique(Year))) %>% 
+  mutate(meanIndPeryear = nuInd / nuYears)
+
+sumplts <- dataOrders %>%
+  mutate(uniqsamples = paste(Year , Period)) %>%
+group_by(Plot_ID) %>%
+summarise(nuInd = sum(Number, na.rm = T) ,
+            nusamples = length(unique(uniqsamples)),
+          mnSamplesperyr = mean(length(unique(Period))), 
+            nuYears = length(unique(Year))) 
 
 
 
-filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/prior sd1/", pattern="*corSum*", full.names=TRUE)
+filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor prior 1/", pattern="*corSum*", full.names=TRUE)
 ldf <- lapply(filenames, readRDS)
 cors<- do.call(rbind.data.frame, ldf); dim(cors)
 cors<- subset(cors, numberOfGoodDatasets >4); dim(cors) # exclude crappy data  57 -> 46
 
 
-filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/prior sd1/", pattern="slope*", full.names=TRUE)
+filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor prior 1/", pattern="slope*", full.names=TRUE)
 ldf <- lapply(filenamesSlopes, readRDS)
 slopes<- do.call(rbind.data.frame, ldf)
 dim(slopes)
 slopes<- subset(slopes, task.id %in% cors$task.id); dim(slopes)
 
-filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/prior sd1/", pattern="cors_*", full.names=TRUE)
+filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor prior 1/", pattern="cors_*", full.names=TRUE)
 ldf <- lapply(filenamesCorraw, readRDS)
 corSamples<- do.call(rbind.data.frame, ldf)
 dim(corSamples)
@@ -126,6 +144,15 @@ cor.test(mnSlpT$trend_T1,  mnSlpT$trend_T2) # r = 0.20, p = <0.0001
 library(wCorr)
 weightedCorr(mnSlpFw$trend_T1, mnSlpFw$trend_T2 , weights = 1/mnSlpFw$mnSD) # 0.28
 weightedCorr(mnSlpT$trend_T1, mnSlpT$trend_T2 , weights = 1/mnSlpT$mnSD) # 0.27
+# what is the relation between number of samples and sd? 
+plot(log10(merge(mnSlopes, sumplts)$nusamples), merge(mnSlopes, sumplts)$sdTrend_T1, 
+     xlab = "log10 number of samples", ylab = "sd trend Taxon1")   
+
+plot((merge(mnSlopes, sumplts)$nuYears), merge(mnSlopes, sumplts)$sdTrend_T1, 
+     xlab = "number of Years", ylab = "sd trend Taxon1")   
+
+plot((merge(mnSlopes, sumplts)$mnSamplesperyr ), merge(mnSlopes, sumplts)$sdTrend_T1, 
+     xlab = "mn number of samples per Year", ylab = "sd trend Taxon1")   
 
 
 table(mnSlopes$trend_T1>0, mnSlopes$trend_T2>0, mnSlopes$Realm )
@@ -135,6 +162,9 @@ hist(slopes$trend_T2) # Almost equal increaes and decreases, but parallel increa
 
 
 #extract percentages in each corner
+chisq.test(table(mnSlopes$trend_T1>0, mnSlopes$trend_T2>0, mnSlopes$Realm )[,,1])
+chisq.test(table(mnSlopes$trend_T1>0, mnSlopes$trend_T2>0, mnSlopes$Realm )[,,2])
+
 dat_text<- as.data.frame(table(mnSlopes$trend_T1>0, mnSlopes$trend_T2>0, mnSlopes$Realm ))
 dat_text$prop<- round( dat_text$Freq /  rep(table(mnSlopes$Realm ), each = 4), 2)
 dat_text$x<-  c(-0.20, 0.25, -0.20, 0.25,     -0.07,  0.06, -0.07, 0.06 )
@@ -163,6 +193,32 @@ ggplot(mnSlopes , aes(x = trend_T1, y = trend_T2)) +
     data    = dat_text,
     mapping = aes(x = x, y = y, label = prop)
   )
+
+
+# Chisq tests for all taxon pairs. not in paper #####
+combinations<- unique(mnSlopes[, c("Taxon1", "Taxon2", "Realm") ])
+
+chisqResults<- NULL
+for(i in (1: nrow(combinations))){
+tx1 <- combinations$Taxon1[i]
+tx2 <- combinations$Taxon2[i]
+rlm <- combinations$Realm[i]
+
+dat<- subset(mnSlopes, Taxon1 == tx1 & Taxon2 == tx2 & Realm == rlm)
+tst<- chisq.test(table(dat$trend_T1>0, dat$trend_T2>0 ))
+Chisqresult<- data.frame(Taxon1 = tx1, 
+           Taxon2 = tx2,
+           Realm = rlm, 
+           Nobs = nrow(dat),
+             test.statistics =   tst$statistic, 
+          df = tst$parameter, 
+          p.value = round(tst$p.value, 3))
+
+chisqResults<- rbind(chisqResults, Chisqresult )
+}
+chisqResults
+par(mfrow = c(1,1))
+plot(chisqResults$Nobs, chisqResults$p.value)
 
 
 
@@ -203,7 +259,7 @@ weightedCorr(slopesRandomT$trend_T1,slopesRandomT$trend_T2, weights = 1/slopesRa
 slopesT<- subset(slopes, Realm == "Terrestrial")
 
 
-
+# only mean slopes
 # including all independent comparisons (i.e. no slopes included twice) 
 mnSlopes$index1<- paste0(mnSlopes$Plot_ID, mnSlopes$Taxon1)
 mnSlopes$index2<- paste0(mnSlopes$Plot_ID, mnSlopes$Taxon2)
@@ -219,12 +275,17 @@ while (nrow(mnSlopesX)>0) {
                         !mnSlopesX$index2 %in% mnSlopesRandom$index2, ] ; dim(mnSlopesX) #  stng  left 
 }; dim(mnSlopesRandom)
 
-# only mean slopes
-#dat_text<- as.data.frame(table(mnSlopesRandom$trend_T1>0, mnSlopesRandom$trend_T2>0, mnSlopesRandom$Realm ))
-#dat_text$prop<- round( dat_text$Freq /  rep(table(mnSlopesRandom$Realm ), each = 4), 2)
-#dat_text$x<-  c(-0.12, 0.12, -0.12, 0.12,     -0.08,  0.05, -0.08, 0.05 )
-#dat_text$y <- c(-0.12, -0.12, 0.15, 0.15,     -0.08, -0.08, 0.06,  0.06)
-#dat_text$Realm <- dat_text$Var3
+
+chisq.test(table(mnSlopesRandom$trend_T1>0, mnSlopesRandom$trend_T2>0, mnSlopesRandom$Realm )[,,1])
+chisq.test(table(mnSlopesRandom$trend_T1>0, mnSlopesRandom$trend_T2>0, mnSlopesRandom$Realm )[,,2])
+
+
+dat_text<- as.data.frame(table(mnSlopesRandom$trend_T1>0, mnSlopesRandom$trend_T2>0, mnSlopesRandom$Realm ))
+dat_text$prop<- round( dat_text$Freq /  rep(table(mnSlopesRandom$Realm ), each = 4), 2)
+dat_text$x<-  c(-0.12, 0.12, -0.12, 0.12,     -0.08,  0.05, -0.08, 0.05 )
+dat_text$y <- c(-0.12, -0.12, 0.15, 0.15,     -0.08, -0.08, 0.06,  0.06)
+dat_text$Realm <- dat_text$Var3
+dat_text$txt<- paste0 (dat_text$prop*100 , "%")
 
 # fig 2a#####
 ggplot(mnSlopesRandom, aes(x = trend_T1, y = trend_T2)) + 
@@ -465,6 +526,10 @@ pMatrT<- dcast(subset(cors, Realm == "Terrestrial" & numberOfGoodDatasets >4 & n
 rownames(pMatrT) <- pMatrT$Taxon1
 pMatrT<- as.matrix(pMatrT[, -(1)])
 
+
+#Table S1
+write.csv(testmatr, "./Graphs/table S1.fw.csv")
+write.csv(testmatrT, "./Graphs/table S1.terr.csv")
 
 
 par(mfrow = c(1,2))
