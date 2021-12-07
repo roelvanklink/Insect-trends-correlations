@@ -6,6 +6,7 @@ library(ggcorrplot)
 library(ggplot2)
 library(reshape2)
 library(tidyverse)
+library(wCorr)
 col.scheme.realm<-c(  "Freshwater"  = "dodgerblue2", "Terrestrial" = "chocolate4")
 theme_clean<- theme_grey() + theme(panel.grid.major = element_blank(), 
                                    panel.grid.minor = element_blank(),
@@ -38,7 +39,8 @@ filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-cor
 ldf <- lapply(filenames, readRDS)
 cors<- do.call(rbind.data.frame, ldf); dim(cors)
 cors<- subset(cors, numberOfGoodDatasets >4); dim(cors) # exclude crappy data  57 -> 46
-
+aggregate(meanCor~Realm,  data = cors, mean)
+aggregate(meanCor~Realm,  data = cors, sd)
 
 filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor prior 1/", pattern="slope*", full.names=TRUE)
 ldf <- lapply(filenamesSlopes, readRDS)
@@ -146,13 +148,13 @@ weightedCorr(mnSlpFw$trend_T1, mnSlpFw$trend_T2 , weights = 1/mnSlpFw$mnSD) # 0.
 weightedCorr(mnSlpT$trend_T1, mnSlpT$trend_T2 , weights = 1/mnSlpT$mnSD) # 0.27
 # what is the relation between number of samples and sd? 
 plot(log10(merge(mnSlopes, sumplts)$nusamples), merge(mnSlopes, sumplts)$sdTrend_T1, 
-     xlab = "log10 number of samples", ylab = "sd trend Taxon1")   
+     ylab = "sd of trend Taxon1" , xlab = "Log10 number of samples")   
 
 plot((merge(mnSlopes, sumplts)$nuYears), merge(mnSlopes, sumplts)$sdTrend_T1, 
-     xlab = "number of Years", ylab = "sd trend Taxon1")   
+     ylab = "sd of trend Taxon1" , xlab = "Number of Years")   
 
 plot((merge(mnSlopes, sumplts)$mnSamplesperyr ), merge(mnSlopes, sumplts)$sdTrend_T1, 
-     xlab = "mn number of samples per Year", ylab = "sd trend Taxon1")   
+     ylab = "sd of trend Taxon1", xlab = "Mean number of samples per Year")   
 
 
 table(mnSlopes$trend_T1>0, mnSlopes$trend_T2>0, mnSlopes$Realm )
@@ -654,11 +656,15 @@ filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-cor
 ldf <- lapply(filenames, readRDS)
 Gcors<- do.call(rbind.data.frame, ldf); dim(Gcors)
 Gcors<- subset(Gcors, numberOfGoodDatasets >4 & numberOfGoodPlots > 19); dim(Gcors) # exclude crappy data  57 -> 46
+aggregate(meanCor~Realm,  data = Gcors, mean)
+aggregate(meanCor~Realm,  data = Gcors, sd)
 
 filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa prior sd1/", pattern="slope*", full.names=TRUE)
 ldf <- lapply(filenamesSlopes, readRDS)
-slopes<- do.call(rbind.data.frame, ldf); dim(slopes)
-slopes<- subset(slopes, task.id %in% Gcors$task.id); dim(slopes)
+Gslopes<- do.call(rbind.data.frame, ldf); dim(Gslopes)
+Gslopes<- subset(slopes, task.id %in% Gcors$task.id); dim(Gslopes)
+dim(slopes) + dim(Gslopes)
+
 
 filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa prior sd1/", pattern="cors_*", full.names=TRUE)
 ldf <- lapply(filenamesCorraw, readRDS)
@@ -768,8 +774,8 @@ corrplot((badmatrT), p.mat = (pbadMatrT),   is.corr = FALSE, tl.col = 'black', n
 
 # Fig 2c plot correlations for by  taxon 
 
-a<- unique((Gcors1[, c("Taxon1", "Realm")]))  
-b<- unique((Gcors1[, c("Taxon2", "Realm")]))  
+a<- unique((Gcors[, c("Taxon1", "Realm")]))  
+b<- unique((Gcors[, c("Taxon2", "Realm")]))  
 names(b)<- names(a)
 taxaRealm<- unique(rbind(a,b))
 
