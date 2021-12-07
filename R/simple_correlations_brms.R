@@ -203,8 +203,14 @@ library(wCorr)
 #monte carlo simulation - get correlation coefficient for each sample
 cor_samples <- sapply(1:1000,function(i){
   
+  #calc weights for i
+  sd_1 <- apply(data.frame(all.ests$sd_T1[all.ests$sample ==i], all.ests$sd_T2[all.ests$sample ==i]), 1, mean)
+  weights_1 <- 1/sd_1
+  quantile_weights_1 <- as.numeric(gtools::quantcut(weights_1, q=4))
+  
+  #calc weights correlation
   weightedCorr(all.ests$trend_T1[all.ests$sample==i],all.ests$trend_T2[all.ests$sample==i], 
-               weights = 1/ apply(data.frame(all.ests$sd_T1[all.ests$sample ==i], all.ests$sd_T2[all.ests$sample ==i]), 1, mean))
+               weights = quantile_weights_1)
 })
 
 cor_samples2 <- sapply(1:1000,function(i){
