@@ -139,7 +139,7 @@ for(i in 1:length(plts)){
     #get data for stan model (made using "make_stancode")
     mod1_data <- make_standata(log_T1 ~ cYear,data = dat, prior = prior1)
     mod2_data <- make_standata(log_T2 ~ cYear,data = dat, prior = prior1) 
-    modelfile <- paste(myfolder,"basic_trend.stan",sep="/")#(made using "make_stancode")
+    modelfile <- paste(myfolder,"stan_models/basic_trend.stan",sep="/")#(made using "make_stancode")
   
   }
   
@@ -148,7 +148,7 @@ for(i in 1:length(plts)){
     #get data for stan model (made using "make_stancode")
     mod1_data <- make_standata(log_T1 ~ cYear + (1|Period), data = dat, prior = prior1)
     mod2_data <- make_standata(log_T2 ~ cYear + (1|Period), data = dat, prior = prior1) 
-    modelfile <- paste(myfolder,"basic_period_trend.stan",sep="/")#(made using "make_stancode")
+    modelfile <- paste(myfolder,"stan_models/basic_period_trend.stan",sep="/")#(made using "make_stancode")
   
   }
   
@@ -211,6 +211,15 @@ cor_samples2 <- sapply(1:1000,function(i){
   
   cor(all.ests$trend_T1[all.ests$sample==i],all.ests$trend_T2[all.ests$sample==i])
 })
+
+
+png(paste0("histcors_",  task.id,   realm, "_" , Taxon1, "_" ,Taxon2, ".png"), width = 350, height = 650)
+par(mfrow= c(2,1))
+hist(cor_samples, xlim = c(-1, 1), main = " weighted correlation")
+text(-0.75, 10, round(mean(cor_samples), 3))
+hist(cor_samples2, xlim = c(-1, 1), main = "normal correlation")
+text(-0.75, 10, round(mean(cor_samples2), 3))
+dev.off()
 
 #put the 1000 values into a data frame
 cors <- data.frame(task.id = task.id,
