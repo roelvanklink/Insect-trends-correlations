@@ -3,13 +3,14 @@ library(brms)
 library(rstan)
 library(reshape2)
 library(posterior)
+library(gtools)
 
 #choose HPC folder
 myfolder <- "/data/idiv_ess/Roel" #Diana's HPC
-myfolder <- "/data/idiv_chase/vanKlink"
+myfolder <- "D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/R"
 
 #read in data
-myData<- readRDS(paste(myfolder,"Fulldata allorders.rds",sep="/"))
+myData<- readRDS("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/Data/Fulldata allorders.rds")
 
 mySummary <- myData %>%
                 group_by(Plot_ID) %>%
@@ -26,8 +27,8 @@ all.relations<- NULL
 all.all.ests<- NULL
 
 #all comparison to make
-good_comparisons_order<-read.csv(paste(myfolder,"comparison_jobs.csv",sep="/"))
-ok_comparisons_order<-  read.csv(paste(myfolder,"comparison_jobs_less_good.csv",sep="/"))
+good_comparisons_order<-read.csv(paste(myfolder,"submit scripts and jobs/comparison_jobs.csv",sep="/"))
+ok_comparisons_order<-  read.csv(paste(myfolder,"submit scripts and jobs/comparison_jobs_less_good.csv",sep="/"))
 comparisons <- rbind(good_comparisons_order, ok_comparisons_order)
 comparisons<- arrange(comparisons, desc(Realm), desc(Datasets))
 
@@ -203,6 +204,12 @@ library(wCorr)
 #monte carlo simulation - get correlation coefficient for each sample
 cor_samples <- sapply(1:1000,function(i){
   
+  cor(all.ests$trend_T1[all.ests$sample==i],all.ests$trend_T2[all.ests$sample==i])
+  
+})
+
+cor_samples2 <- sapply(1:1000,function(i){
+  
   #calc weights for i
   sd_1 <- apply(data.frame(all.ests$sd_T1[all.ests$sample ==i], all.ests$sd_T2[all.ests$sample ==i]), 1, mean)
   weights_1 <- 1/sd_1
@@ -210,20 +217,14 @@ cor_samples <- sapply(1:1000,function(i){
   
   #calc weights correlation
   weightedCorr(all.ests$trend_T1[all.ests$sample==i],all.ests$trend_T2[all.ests$sample==i], 
-               weights = quantile_weights_1)
-})
-
-cor_samples2 <- sapply(1:1000,function(i){
-  
-  cor(all.ests$trend_T1[all.ests$sample==i],all.ests$trend_T2[all.ests$sample==i])
-})
+               weights = quantile_weights_1)})
 
 
 png(paste0("histcors_",  task.id,   realm, "_" , Taxon1, "_" ,Taxon2, ".png"), width = 350, height = 650)
 par(mfrow= c(2,1))
-hist(cor_samples, xlim = c(-1, 1), main = " weighted correlation")
+hist(cor_samples, xlim = c(-1, 1), main = "normal correlation")
 text(-0.75, 10, round(mean(cor_samples), 3))
-hist(cor_samples2, xlim = c(-1, 1), main = "normal correlation")
+hist(cor_samples2, xlim = c(-1, 1), main = "weighted correlation")
 text(-0.75, 10, round(mean(cor_samples2), 3))
 dev.off()
 
