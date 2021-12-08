@@ -34,21 +34,24 @@ summarise(nuInd = sum(Number, na.rm = T) ,
             nuYears = length(unique(Year))) 
 
 
-
-filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor prior 1/", pattern="*corSum*", full.names=TRUE)
+filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/prior sd1/", pattern="*corSum*", full.names=TRUE)
+# for sensitivity analysis with weighted correlations use: 
+#filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor 4x prior 1/", pattern="*corSum*", full.names=TRUE)
 ldf <- lapply(filenames, readRDS)
 cors<- do.call(rbind.data.frame, ldf); dim(cors)
 cors<- subset(cors, numberOfGoodDatasets >4); dim(cors) # exclude crappy data  57 -> 46
 aggregate(meanCor~Realm,  data = cors, mean)
 aggregate(meanCor~Realm,  data = cors, sd)
 
-filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor prior 1/", pattern="slope*", full.names=TRUE)
+filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/prior sd1/", pattern="slope*", full.names=TRUE)
+#filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor 4x prior 1/", pattern="slope*", full.names=TRUE)
 ldf <- lapply(filenamesSlopes, readRDS)
 slopes<- do.call(rbind.data.frame, ldf)
 dim(slopes)
 slopes<- subset(slopes, task.id %in% cors$task.id); dim(slopes)
 
-filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor prior 1/", pattern="cors_*", full.names=TRUE)
+filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs//prior sd1/", pattern="cors_*", full.names=TRUE)
+#filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor prior 1/", pattern="cors_*", full.names=TRUE)
 ldf <- lapply(filenamesCorraw, readRDS)
 corSamples<- do.call(rbind.data.frame, ldf)
 dim(corSamples)
@@ -259,6 +262,21 @@ cor.test(slopesRandomT$trend_T1, slopesRandomT$trend_T2) # r =
 weightedCorr(slopesRandomT$trend_T1,slopesRandomT$trend_T2, weights = 1/slopesRandomT$mnSD)
 
 slopesT<- subset(slopes, Realm == "Terrestrial")
+
+
+
+# example scatter of weighted correlation of some samples 
+sort(unique(slopes$task.id))
+testdat<- subset(slopes, task.id == 5 & sample == 20 )
+ggplot(testdat  , aes(x = trend_T1, y = trend_T2, size = 1/mnSD)) + 
+  #geom_bin2d(bins=50)+ 
+  geom_point()+
+  xlab("") + ylab("")+
+  geom_abline(intercept = 0 , slope = 1)+
+  ggtitle(paste(unique(testdat$Taxon1), unique(testdat$Taxon2), "sample", unique(testdat$sample)))+
+  geom_hline(yintercept = 0)+ geom_vline(xintercept = 0)
+
+
 
 
 # only mean slopes
@@ -653,6 +671,7 @@ ggplot()+
 #############
 
 filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa prior sd1/", pattern="*corSum*", full.names=TRUE)
+#filenames <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor 4x prior 1 rest groups/", pattern="*corSum*", full.names=TRUE)
 ldf <- lapply(filenames, readRDS)
 Gcors<- do.call(rbind.data.frame, ldf); dim(Gcors)
 Gcors<- subset(Gcors, numberOfGoodDatasets >4 & numberOfGoodPlots > 19); dim(Gcors) # exclude crappy data  57 -> 46
@@ -660,6 +679,7 @@ aggregate(meanCor~Realm,  data = Gcors, mean)
 aggregate(meanCor~Realm,  data = Gcors, sd)
 
 filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa prior sd1/", pattern="slope*", full.names=TRUE)
+#filenamesSlopes <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor 4x prior 1 rest groups/", pattern="slope*", full.names=TRUE)
 ldf <- lapply(filenamesSlopes, readRDS)
 Gslopes<- do.call(rbind.data.frame, ldf); dim(Gslopes)
 Gslopes<- subset(slopes, task.id %in% Gcors$task.id); dim(Gslopes)
@@ -667,6 +687,7 @@ dim(slopes) + dim(Gslopes)
 
 
 filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/rest taxa prior sd1/", pattern="cors_*", full.names=TRUE)
+#filenamesCorraw <- list.files("D:/work/2017 iDiv/2018 insect biomass/Insect-trends-correlations/model-outputs/weighted cor 4x prior 1 rest groups/", pattern="cors_*", full.names=TRUE)
 ldf <- lapply(filenamesCorraw, readRDS)
 corSamples<- do.call(rbind.data.frame, ldf); dim(corSamples)
 corSamples<- subset(corSamples, task.id %in% Gcors$task.id); dim(corSamples)
@@ -730,16 +751,19 @@ GpMatrT<- as.matrix(GpMatrT[, -(1)])
 par(mfrow = c(1,2))
 #corrplot(as.matrix(testmatr))
 #corrplot(testmatr, method = 'ellipse')#, order = 'AOE', type = 'upper')
-corrplot(GtestmatrF, p.mat = GpMatrFW,   is.corr =F, tl.col = 'black', na.label = " ",
-         col.lim = c(-0.02, 0.2), insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), 
+corrplot(GtestmatrF, p.mat = GpMatrFW,   is.corr =F, tl.col = 'black', na.label = ".",
+         col.lim = c(-0.02, 0.3), insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), 
          pch.cex = 1.5, pch.col = 'grey20', title = "Freshwater", mar=c(0,0,1,0))
 corrplot(t(GtestmatrT), p.mat = t(GpMatrT),  is.corr = F, tl.col = 'black', na.label = ".",
          col = colorRampPalette(c(#"#67001F", "#B2182B", 
                                   #"#D6604D", "#F4A582", "#FDDBC7", 
                                   "#FFFFFF", "#D1E5F0", "#92C5DE", 
                                   "#4393C3", "#2166AC", "#053061"))(200), 
-         col.lim = c(-0, 0.20), insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), 
+         col.lim = c(-0, 0.30), insig = 'label_sig', sig.level = c(0.001, 0.01, 0.05), 
          pch.cex = 1.5, pch.col = 'grey20', title = "Terrestrial", mar=c(0,0,1,0))
+
+write.csv(GtestmatrF, "./Graphs/table S1g.fw.csv")
+write.csv(GtestmatrT, "./Graphs/table S1g.terr.csv")
 
 
 
